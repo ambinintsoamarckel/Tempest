@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const dbUrl = 'mongodb://localhost:27017/mini-reseau-social'; // Remplacez par votre URL de connexion
+const dbUrl = 'mongodb+srv://marsonambinintsoa:fMtQ5pOMAsXifDKd@cluster0.qaxiuic.mongodb.net/Tempest?retryWrites=true&w=majority&appName=Cluster0'; // Remplacez par votre URL de connexion
 
 mongoose.connect(dbUrl, {
   useNewUrlParser: true,
