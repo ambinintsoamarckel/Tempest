@@ -1,0 +1,11 @@
+node_modules/
+.cache/
+.env
+.DS_Store
+coverage/
+dist/
+logs/
+tmp/
+yarn.lock
+*.log
+*.swp
