@@ -1,6 +1,7 @@
-const mongoose = require('./MessageAbstrait'); // Importez le modèle abstrait
+const mongoose = require('mongoose');
+const MessageAbstrait = require('./MessageAbstrait');
 
-const messageGroupeSchema = new MessagePrive.schema({
+const messageGroupeSchema = new mongoose.Schema({
   groupe: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Groupe',
@@ -8,9 +9,11 @@ const messageGroupeSchema = new MessagePrive.schema({
   },
   reponseA: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Message',
+    ref: 'MessageAbstrait', // Référence à MessageAbstrait
     required: false
   }
 });
 
-module.exports = messageGroupeSchema.model('MessageGroupe');
+const MessageGroupe = MessageAbstrait.discriminator('MessageGroupe', messageGroupeSchema);
+
+module.exports = MessageGroupe;

@@ -17,12 +17,13 @@ const messageAbstraitSchema = new mongoose.Schema({
     },
     fichier: {
       type: String // URL ou chemin d'accès au fichier
-    },
-    expediteur: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Utilisateur',
-      required: true
-    },
+    }
+  },
+  expediteur: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Utilisateur',
+    required: true
+  },
   dateEnvoi: {
     type: Date,
     default: Date.now
@@ -31,6 +32,8 @@ const messageAbstraitSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   }
-}});
+}, { discriminatorKey: 'type', collection: 'messages' });
 
-module.exports = mongoose.model('MessageAbstrait', messageAbstraitSchema);
+const MessageAbstrait = mongoose.model('MessageAbstrait', messageAbstraitSchema);
+
+module.exports = MessageAbstrait;

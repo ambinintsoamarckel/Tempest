@@ -22,7 +22,7 @@ const groupeSchema = new mongoose.Schema({
   }],
   messages: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'MessageGroupe'
+    ref: 'MessageGroupe' // Référence à MessageGroupe
   }]
 });
 
