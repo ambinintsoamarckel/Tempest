@@ -13,6 +13,17 @@ class UtilisateurService {
       throw error;
     }
   }
+  async getAllUtilisateur() {
+    try {
+    
+      const utilisateur = await Utilisateur.find().populate('messagesEnvoyes groupes messagesRecus');
+      return utilisateur;
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'utilisateur :', error);
+      throw error;
+    }
+  }
+
 
   // Mettre à jour un utilisateur
   async updateUtilisateur(utilisateurId, data) {

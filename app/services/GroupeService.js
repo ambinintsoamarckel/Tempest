@@ -15,6 +15,17 @@ class GroupeService {
     }
   }
 
+  async getAllGroupe() {
+    try {
+       
+      const groupe= await Groupe.find().populate('membres createur');
+      return groupe;
+    } catch (error) {
+      console.error('Erreur lors de la récupération du groupe :', error);
+      throw error;
+    }
+  }
+
   // Mettre à jour un groupe
   async updateGroupe(groupeId, data) {
     try {

@@ -25,7 +25,6 @@ class MessageService {
       throw error;
     }
   }
-
   // Envoyer un message de groupe
   async sendMessageGroupe(data) {
     try {

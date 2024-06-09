@@ -11,6 +11,15 @@ module.exports = {
     }
   },
 
+  async VoirTousUtilisateur(req,res) {
+    try {
+      const utilisateur = await utilisateurService.getAllUtilisateur();
+      res.status(200).json(utilisateur);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
   async seConnecter(req, res) {
     try {
       const { email, motDePasse } = req.body;

@@ -9,6 +9,14 @@ module.exports = {
       res.status(400).json({ message: error.message });
     }
   },
+  async VoirTousLesGroupe(req,res) {
+    try {
+      const groupe = await groupeService.getAllGroupe();
+      res.status(200).json(groupe);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
 
   async recupererGroupe(req, res) {
     try {

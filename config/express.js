@@ -9,7 +9,7 @@ db.once('open', () => {
   app.use(express.urlencoded({ extended: true })); // Parse les requêtes POST
 
   // Définir les routes
-   require('../app/route')(app);  // Importer et utiliser les routes définies dans routes.js
+  require('../app/route')(app);  // Importer et utiliser les routes définies dans routes.js
 
   // Démarrer le serveur
   app.listen(3000, () => console.log('Serveur Express démarré sur le port 3000'));
