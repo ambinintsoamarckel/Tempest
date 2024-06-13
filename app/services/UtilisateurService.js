@@ -5,7 +5,10 @@ class UtilisateurService {
   // Créer un nouvel utilisateur
   async createUtilisateur(data) {
     try {
+      console.log('exemple',data);
       const utilisateur = new Utilisateur(data);
+      console.log('essai',utilisateur);
+      utilisateur.setPassword();
       await utilisateur.save();
       return utilisateur;
     } catch (error) {
@@ -28,7 +31,9 @@ class UtilisateurService {
   // Mettre à jour un utilisateur
   async updateUtilisateur(utilisateurId, data) {
     try {
-      const utilisateur = await Utilisateur.findByIdAndUpdate(utilisateurId, data, { new: true });
+      const userModif= new Utilisateur(data);
+      userModif.setPassword();
+      const utilisateur = await Utilisateur.findByIdAndUpdate(utilisateurId, userModif, { new: true });
       if (!utilisateur) {
         throw new Error('Utilisateur non trouvé');
       }

@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const utilisateurController = require('./controllers/UtilisateurController');
-const messageController = require('./controllers/MessageController');
-const groupeController = require('./controllers/GroupeController');
-const storyController = require('./controllers/StoryController');
+const utilisateurController = require('../controllers/UtilisateurController');
+const messageController = require('../controllers/MessageController');
+const groupeController = require('../controllers/GroupeController');
+const storyController = require('../controllers/StoryController');
+var passport = require('passport');
+
 
 const routes = (app) => {
 
@@ -137,7 +139,11 @@ const routes = (app) => {
         console.log(`Request type: ${req.method}`)
         next();
     },storyController.recupererStory)
-    .delete(storyController.supprimerStory);    
+    .delete(storyController.supprimerStory);   
+
+
+
+
         
 }
 

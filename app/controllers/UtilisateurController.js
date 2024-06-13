@@ -4,6 +4,7 @@ const messageService = require('../services/MessageService');
 module.exports = {
   async creerUtilisateur(req, res) {
     try {
+      console.log('zao no tsapako',req.body);
       const utilisateur = await utilisateurService.createUtilisateur(req.body);
       res.status(201).json(utilisateur);
     } catch (error) {
