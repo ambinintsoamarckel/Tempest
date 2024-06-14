@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const db = require('../config/db'); // Importer la configuration de la base de données
 var passport = require('passport');
-var session = require('express-session');
+var session = require('express-session'); // Importer le middleware de session
 var AuthRoute = require('../app/routes/Auth');
 var crypto= require('crypto');
 const bodyParser= require('body-parser');
@@ -19,30 +19,24 @@ var corsOptions = {
 };
 
 app.use(cors(corsOptions)); 
-
-// bodyparser
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+
+// Configuration de la session
+const sessionConfig = {
+  secret: secret, // Remplacer par votre clé secrète générée
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: false } // Définir sur true pour les environnements de production
+};
+
+// Appliquer le middleware de session
+app.use(session(sessionConfig)); 
+app.use(passport.session());
 
 
 // Se connecter à la base de données avant de démarrer le serveur
 db.once('open', () => {
-  // Configurer les middleware
-/*   app.use(express.json()); // Parse les requêtes JSON
-  app.use(express.urlencoded({ extended: true })); // Parse les requêtes POST
-  if (secret) {
-    app.use(session({
-      secret,
-      resave: false,
-      saveUninitialized: false
-    }));
-  }
-
-  // Initialisation de Passport (si nécessaire)
-  if (passport) {
-    app.use(passport.initialize());
-    app.use(passport.session());
-  } */
 
   // Définir les routes
   app.use('/',AuthRoute);
