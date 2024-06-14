@@ -9,140 +9,65 @@ var passport = require('passport');
 
 const routes = (app) => {
 
+  // Import the protectedRoutes middleware
+  const protectedRoutes = require('./protectedRoutes'); // Assuming the middleware is in a file named protectedRoutes.js
+
     app.route('/utilisateurs/:id/contacts-et-messages')
-    .get((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },utilisateurController.recupererContactsEtMessages);
+    .get(protectedRoutes, utilisateurController.recupererContactsEtMessages); // Apply protectedRoutes middleware
 
     app.route('/utilisateurs')
-    .post((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },utilisateurController.creerUtilisateur)
+    .post(utilisateurController.creerUtilisateur) // Apply protectedRoutes middleware
     .get(utilisateurController.VoirTousUtilisateur);
 
     app.route('/utilisateurs/connexion')
-    .post((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },utilisateurController.seConnecter);
+    .post(utilisateurController.seConnecter); // No middleware needed for login
 
     app.route('/utilisateurs/:id')
-    .get((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },utilisateurController.recupererUtilisateur)
-    .put(utilisateurController.modifierUtilisateur)
-    .delete(utilisateurController.supprimerUtilisateur);
+    .get(protectedRoutes, utilisateurController.recupererUtilisateur) // Apply protectedRoutes middleware
+    .put(protectedRoutes, utilisateurController.modifierUtilisateur) // Apply protectedRoutes middleware
+    .delete(protectedRoutes, utilisateurController.supprimerUtilisateur); // Apply protectedRoutes middleware
     
     app.route('/utilisateurs/:id/discussion/:contactId')
-    .get((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },utilisateurController.recupererDiscussionAvecContact);
+    .get(protectedRoutes, utilisateurController.recupererDiscussionAvecContact); // Apply protectedRoutes middleware
 
     app.route('/utilisateurs/:id/amis/:amiId')
-    .post((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },utilisateurController.ajouterAmi);
+    .post(protectedRoutes, utilisateurController.ajouterAmi); // Apply protectedRoutes middleware
 
     app.route('/utilisateurs/:id/messages')
-    .post((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },utilisateurController.envoyerMessage);
+    .post(protectedRoutes, utilisateurController.envoyerMessage); // Apply protectedRoutes middleware
 
     app.route('/messages')
-    .post((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },messageController.creerMessage);
+    .post(protectedRoutes, messageController.creerMessage); // Apply protectedRoutes middleware
 
     app.route('/messages/:id')
-    .get((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },messageController.recupererMessage)
-    .put(messageController.modifierMessage)
-    .delete(messageController.supprimerMessage);
+    .get(protectedRoutes, messageController.recupererMessage) // Apply protectedRoutes middleware
+    .put(protectedRoutes, messageController.modifierMessage) // Apply protectedRoutes middleware
+    .delete(protectedRoutes, messageController.supprimerMessage); // Apply protectedRoutes middleware
 
 
     app.route('/groupes')
-    .post((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },groupeController.creerGroupe)
-    .get(groupeController.VoirTousLesGroupe);
+    .post(protectedRoutes, groupeController.creerGroupe) // Apply protectedRoutes middleware
+    .get(protectedRoutes, groupeController.VoirTousLesGroupe); // Apply protectedRoutes middleware
 
     app.route('/groupes/:id')
-    .get((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },groupeController.recupererGroupe)
-    .put(groupeController.modifierGroupe)
-    .delete(groupeController.supprimerGroupe);
+    .get(protectedRoutes, groupeController.recupererGroupe) // Apply protectedRoutes middleware
+    .put(protectedRoutes, groupeController.modifierGroupe) // Apply protectedRoutes middleware
+    .delete(protectedRoutes, groupeController.supprimerGroupe); // Apply protectedRoutes middleware
 
     app.route('/groupes/:id/membres/:utilisateurId')
-    .post((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },groupeController.ajouterMembre)
-    .delete(groupeController.retirerMembre);
+    .post(protectedRoutes, groupeController.ajouterMembre) // Apply protectedRoutes middleware
+    .delete(protectedRoutes, groupeController.retirerMembre); // Apply protectedRoutes middleware
     
     app.route('/groupes/:id/messages')
-    .post((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },groupeController.envoyerMessageGroupe)
-    .get(groupeController.recupererMessagesGroupe);
+    .post(protectedRoutes, groupeController.envoyerMessageGroupe) // Apply protectedRoutes middleware
+    .get(protectedRoutes, groupeController.recupererMessagesGroupe); // Apply protectedRoutes middleware
 
     app.route('/stories')
-    .post((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },storyController.creerStory);
+    .post(protectedRoutes, storyController.creerStory); // Apply protectedRoutes middleware
 
     app.route('/stories/:id')
-    .get((req, res, next) => {
-        // middleware
-        console.log(`Request de: ${req.originalUrl}`)
-        console.log(`Request type: ${req.method}`)
-        next();
-    },storyController.recupererStory)
-    .delete(storyController.supprimerStory);   
-
-
-
+    .get(protectedRoutes, storyController.recupererStory) // Apply protectedRoutes middleware
+    .delete(protectedRoutes, storyController.supprimerStory); // Apply protectedRoutes middleware
 
         
 }
