@@ -1,10 +1,13 @@
 const mongoose = require('mongoose');
 const faker = require('@faker-js/faker');
-const Utilisateur = require('../models/Utilisateur');
-const Groupe = require('../models/Groupe');
 const MessagePrive = require('../models/MessagePrive');
 const MessageGroupe = require('../models/MessageGroupe');
-const Story = require('../models/Story');
+const Utilisateur= require('../models/Utilisateur');
+const Groupe = require('../models/Groupe');
+const Story =require('../models/Story');
+
+
+
 
 async function insertFixtures() {
   try {
@@ -15,85 +18,70 @@ async function insertFixtures() {
     await MessageGroupe.deleteMany({});
     await Story.deleteMany({});
     
-
     // Créer des utilisateurs
     const utilisateurs = [];
     for (let i = 0; i < 10; i++) {
-      utilisateurs.push({
+      const utilisateur = new Utilisateur({
         nom: faker.fakerFR.person.firstName(),
         email: faker.fakerFR.internet.email(),
-        motDePasse: faker.fakerFR.internet.password(),
+        password: 123456789,
         photo: faker.fakerFR.image.avatar(),
         presence: 'inactif'
       });
+      utilisateur.setPassword(); // Hacher le mot de passe
+      utilisateurs.push(utilisateur);
     }
     const utilisateursInserts = await Utilisateur.insertMany(utilisateurs);
+// Créer des groupes individuellement pour déclencher le middleware post('save')
+const groupes = [];
+for (let i = 0; i < 5; i++) {
+  const nouveauGroupe = new Groupe({
+    nom: faker.fakerFR.company.name(),
+    description: faker.fakerFR.lorem.sentence(),
+    createur: utilisateursInserts[i % utilisateursInserts.length]._id,
+    membres: utilisateursInserts.slice(i, i + 3).map(u => u._id)
+  });
+  groupes.push(nouveauGroupe.save()); // Ajoute la promesse du save() à un tableau
+}
 
+// Attendre que toutes les opérations de save() soient terminées
+const groupesInserts = await Promise.all(groupes);
+ 
 
-    // Créer des groupes
-    const groupes = [];
-    for (let i = 0; i < 5; i++) {
-      groupes.push({
-        nom: faker.fakerFR.company.name(),
-        description: faker.fakerFR.lorem.sentence(),
-        createur: utilisateursInserts[i % utilisateursInserts.length]._id,
-        membres: utilisateursInserts.slice(i, i + 3).map(u => u._id)
-      });
-    }
-    const groupesInserts = await Groupe.insertMany(groupes);
+// Créer des messages privés
+for (let i = 0; i < 20; i++) {
+  const expediteur = utilisateurs[Math.floor(Math.random() * utilisateurs.length)];
+  const destinataire = utilisateurs[Math.floor(Math.random() * utilisateurs.length)];
+  const message = await expediteur.sendMessageToPerson(destinataire._id,{ contenu: { type: 'texte', texte: faker.fakerFR.lorem.sentence() }});
+}
+// Créer des messages de groupe
+for (let i = 0; i < 20; i++) {
+  const expediteur = utilisateurs[Math.floor(Math.random() * utilisateurs.length)];
+  const groupe = groupesInserts[Math.floor(Math.random() * groupesInserts.length)];
 
-    // Créer des messages privés
-    const messagesPrives = [];
-    for (let i = 0; i < 20; i++) {
-      const expediteur = utilisateursInserts[Math.floor(Math.random() * utilisateursInserts.length)];
-      const destinataire = utilisateursInserts[Math.floor(Math.random() * utilisateursInserts.length)];
-      messagesPrives.push({
-        contenu: { type: 'texte', texte: faker.fakerFR.lorem.sentence() },
-        expediteur: expediteur._id,
-        destinataire: destinataire._id
-      });
-    }
-    const messagesPrivesInserts = await MessagePrive.insertMany(messagesPrives);
+  // Vérifier si l'expéditeur est membre du groupe
+  if (!groupe.membres.includes(expediteur._id)) {
+    console.log(`L'utilisateur ${expediteur.nom} (${expediteur._id}) n'est pas membre du groupe ${groupe.nom} (${groupe._id}).`);
+    continue; // Passer à l'itération suivante si l'utilisateur n'est pas membre du groupe
+  }
 
-    // Créer des messages de groupe
-    const messagesGroupes = [];
-    for (let i = 0; i < 20; i++) {
-      const expediteur = utilisateursInserts[Math.floor(Math.random() * utilisateursInserts.length)];
-      const groupe = groupesInserts[Math.floor(Math.random() * groupesInserts.length)];
-      messagesGroupes.push({
-        contenu: { type: 'texte', texte: faker.fakerFR.lorem.sentence() },
-        expediteur: expediteur._id,
-        groupe: groupe._id
-      });
-    }
-    const messagesGroupesInserts = await MessageGroupe.insertMany(messagesGroupes);
-
-    // Créer des stories
-    const stories = [];
-    for (let i = 0; i < 10; i++) {
-      stories.push({
-        utilisateur: utilisateursInserts[i % utilisateursInserts.length]._id,
-        contenu: { type: 'texte', texte: faker.fakerFR.lorem.sentence(),   dateExpiration: new Date(Date.now() + 24 * 60 * 60 * 1000) }
-     
-      });
-    }
-    const storiesInserts = await Story.insertMany(stories);
-
-    // Ajouter des références de messages aux utilisateurs et groupes
-    for (let i = 0; i < utilisateursInserts.length; i++) {
-      const utilisateur = utilisateursInserts[i];
-      const messagesEnvoyes = messagesPrivesInserts.filter(msg => msg.expediteur.equals(utilisateur._id)).map(msg => msg._id);
-      const messagesRecus = messagesPrivesInserts.filter(msg => msg.destinataire.equals(utilisateur._id)).map(msg => msg._id);
-      await Utilisateur.findByIdAndUpdate(utilisateur._id, { messagesEnvoyes, messagesRecus });
-    }
-
-    for (let i = 0; i < groupesInserts.length; i++) {
-      const groupe = groupesInserts[i];
-      const messages = messagesGroupesInserts.filter(msg => msg.groupe.equals(groupe._id)).map(msg => msg._id);
-      await Groupe.findByIdAndUpdate(groupe._id, { messages });
-    }
-
-    console.log('Fixtures insérées avec succès !');
+  try {
+    const message = await expediteur.sendMessageToGroup(groupe._id, { contenu: { type: 'texte', texte: faker.fakerFR.lorem.sentence() }});
+    console.log(`Message envoyé au groupe ${groupe.nom} par ${expediteur.nom}.`);
+  } catch (error) {
+    console.error(`Erreur lors de l'envoi du message au groupe ${groupe.nom} par ${expediteur.nom} :`, error);
+  }
+}
+// Créer des stories
+for (let i = 0; i < 10; i++) {
+  const utilisateur = utilisateurs[i % utilisateurs.length];
+  const contenu = {contenu:{
+    type: 'texte',
+    texte: faker.fakerFR.lorem.sentence()}
+  };
+  await utilisateur.addStory(contenu);
+}
+   console.log('Fixtures insérées avec succès !');
   } catch (error) {
     console.error('Erreur lors de l\'insertion des fixtures :', error);
   }

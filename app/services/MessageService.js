@@ -45,10 +45,10 @@ class MessageService {
   // Récupérer tous les messages privés d'un utilisateur
   async getMessagesPrives(utilisateurId) {
     try {
-      const utilisateur = await Utilisateur.findById(utilisateurId).populate({
+      const utilisateur = await Utilisateur.findById(utilisateurId)/* .populate({
         path: 'messagesEnvoyes messagesRecus',
         populate: { path: 'expediteur destinataire' }
-      });
+      }) */;
       if (!utilisateur) {
         throw new Error('Utilisateur non trouvé');
       }

@@ -19,7 +19,7 @@ class UtilisateurService {
   async getAllUtilisateur() {
     try {
     
-      const utilisateur = await Utilisateur.find().populate('messagesEnvoyes groupes messagesRecus');
+      const utilisateur = await Utilisateur.find().populate('messagesPrivesEnvoyes messagesPrivesRecus messagesGroupesEnvoyes messagesGroupesRecus groupes');
       return utilisateur;
     } catch (error) {
       console.error('Erreur lors de la création de l\'utilisateur :', error);

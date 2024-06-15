@@ -28,11 +28,14 @@ const messageAbstraitSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  lu: {
-    type: Boolean,
-    default: false
+  reponseA: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'MessageAbstrait', // Référence à MessageAbstrait
+    required: false
   }
 }, { discriminatorKey: 'type', collection: 'messages' });
+
+
 
 const MessageAbstrait = mongoose.model('MessageAbstrait', messageAbstraitSchema);
 

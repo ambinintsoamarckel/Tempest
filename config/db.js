@@ -12,7 +12,7 @@ const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'Erreur de connexion à la base de données :'));
 db.once('open', async () => {
   console.log('Connexion à la base de données réussie !');
-  //loadFixture();  
+ loadFixture();  
 });
 const sessionStore = new MongoStore({ mongoUrl: dbUrl });
 module.exports = {

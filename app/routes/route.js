@@ -12,20 +12,26 @@ const routes = (app) => {
   // Import the protectedRoutes middleware
   const protectedRoutes = require('./protectedRoutes'); // Assuming the middleware is in a file named protectedRoutes.js
 
-    app.route('/utilisateurs/:id/contacts-et-messages')
+    app.route('/derniereDiscu')
     .get(protectedRoutes, utilisateurController.recupererContactsEtMessages); // Apply protectedRoutes middleware
 
     app.route('/utilisateurs')
     .post(utilisateurController.creerUtilisateur) // Apply protectedRoutes middleware
     .get(utilisateurController.VoirTousUtilisateur);
 
-    app.route('/utilisateurs/connexion')
-    .post(utilisateurController.seConnecter); // No middleware needed for login
-
     app.route('/utilisateurs/:id')
     .get(protectedRoutes, utilisateurController.recupererUtilisateur) // Apply protectedRoutes middleware
-    .put(protectedRoutes, utilisateurController.modifierUtilisateur) // Apply protectedRoutes middleware
+    .put( utilisateurController.modifierUtilisateur) // Apply protectedRoutes middleware
     .delete(protectedRoutes, utilisateurController.supprimerUtilisateur); // Apply protectedRoutes middleware
+
+    app.route('/me')
+    .get(protectedRoutes, utilisateurController.recupererMonCompte) // Apply protectedRoutes middleware
+    .put(protectedRoutes, utilisateurController.modifierMonCompte) // Apply protectedRoutes middleware
+    .delete(protectedRoutes, utilisateurController.supprimerMonCompte);
+
+    app.route('/session')
+    .get(protectedRoutes, utilisateurController.recupererSession); // Apply protectedRoutes middleware
+
     
     app.route('/utilisateurs/:id/discussion/:contactId')
     .get(protectedRoutes, utilisateurController.recupererDiscussionAvecContact); // Apply protectedRoutes middleware
