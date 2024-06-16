@@ -3,9 +3,7 @@ const passport = require('passport');
 module.exports = function(req, res, next) {
   // Vérifier si l'utilisateur est connecté
   req.session.reload(function(err) {
-    // session updated
-    console.log(req.session,'essai middleware');
-  console.log(res.session,'essai middleware 235');
+  // session updated
   if (req.session.passport && req.session.passport.user) {
     // Utilisateur connecté, passer au middleware suivant
     next();

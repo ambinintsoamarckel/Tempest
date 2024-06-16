@@ -5,11 +5,19 @@ class UtilisateurService {
   // Créer un nouvel utilisateur
   async createUtilisateur(data) {
     try {
-      console.log('exemple',data);
       const utilisateur = new Utilisateur(data);
-      console.log('essai',utilisateur);
       utilisateur.setPassword();
       await utilisateur.save();
+      return utilisateur;
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'utilisateur :', error);
+      throw error;
+    }
+  }
+  async findUtilisateurById(utilisateurId) {
+    try {
+    
+      const utilisateur = await Utilisateur.findById(utilisateurId).populate('messagesPrivesEnvoyes messagesPrivesRecus messagesGroupesEnvoyes messagesGroupesRecus groupes');
       return utilisateur;
     } catch (error) {
       console.error('Erreur lors de la création de l\'utilisateur :', error);
@@ -32,7 +40,6 @@ class UtilisateurService {
   async updateUtilisateur(utilisateurId, data) {
     try {
       const userModif= new Utilisateur(data);
-      userModif.setPassword();
       const utilisateur = await Utilisateur.findByIdAndUpdate(utilisateurId, userModif, { new: true });
       if (!utilisateur) {
         throw new Error('Utilisateur non trouvé');
@@ -75,7 +82,7 @@ class UtilisateurService {
       if (!utilisateur) {
         throw new Error('Utilisateur non trouvé');
       }
-      return await utilisateur.findContactsAndLastMessages();
+      return await utilisateur.findLastConversations();
     } catch (error) {
       console.error('Erreur lors de la récupération des contacts et des derniers messages :', error);
       throw error;
@@ -89,37 +96,34 @@ class UtilisateurService {
       if (!utilisateur) {
         throw new Error('Utilisateur non trouvé');
       }
-      return await utilisateur.findDiscussionWith(contactId);
+      return await utilisateur.findDiscussionWithPerson(contactId);
+    } catch (error) {
+      console.error('Erreur lors de la récupération de la discussion :', error);
+      throw error;
+    }
+  }
+  async findDiscussionWithGroup(utilisateurId, groupId) {
+    try {
+      const utilisateur = await Utilisateur.findById(utilisateurId);
+      if (!utilisateur) {
+        throw new Error('Utilisateur non trouvé');
+      }
+      return await utilisateur.findDiscussionWithGroup(groupId);
     } catch (error) {
       console.error('Erreur lors de la récupération de la discussion :', error);
       throw error;
     }
   }
 
-  // Ajouter un ami
-  async addFriend(utilisateurId, amiId) {
-    try {
-      const utilisateur = await Utilisateur.findById(utilisateurId);
-      const ami = await Utilisateur.findById(amiId);
-      if (!utilisateur || !ami) {
-        throw new Error('Utilisateur ou ami non trouvé');
-      }
-      utilisateur.amis.push(amiId);
-      ami.amis.push(utilisateurId);
-      await utilisateur.save();
-      await ami.save();
-      return utilisateur;
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout d\'un ami :', error);
-      throw error;
-    }
-  }
-
   // Envoyer un message privé
-  async sendMessageTo(expediteurId, destinataireId, contenu) {
+  async sendMessageToPerson(expediteurId, destinataireId, contenu) {
     try {
-      return await MessageService.sendPrivateMessage(expediteurId, destinataireId, contenu);
-    } catch (error) {
+      const utilisateur = await Utilisateur.findById(expediteurId);
+      if (!utilisateur) {
+        throw new Error('Utilisateur non trouvé');
+      }
+      return await utilisateur.sendMessageToPerson(destinataireId,contenu);
+    }  catch (error) {
       console.error('Erreur lors de l\'envoi du message privé :', error);
       throw error;
     }
@@ -128,9 +132,41 @@ class UtilisateurService {
   // Envoyer un message de groupe
   async sendMessageToGroup(expediteurId, groupeId, contenu) {
     try {
-      return await MessageService.sendGroupMessage(expediteurId, groupeId, contenu);
-    } catch (error) {
+      const utilisateur = await Utilisateur.findById(expediteurId);
+      if (!utilisateur) {
+        throw new Error('Utilisateur non trouvé');
+      }
+      return await utilisateur.sendMessageToGroup(groupeId,contenu);
+    }   catch (error) {
       console.error('Erreur lors de l\'envoi du message de groupe :', error);
+      throw error;
+    }
+  }
+
+  async addStory(utilisateurId,contenu)
+  {
+    try {
+      const utilisateur = await Utilisateur.findById(utilisateurId);
+      if (!utilisateur) {
+        throw new Error('Utilisateur non trouvé');
+      }
+      return await utilisateur.addStory(contenu);
+    }   catch (error) {
+      console.error('Erreur lors de l\'ajout du story :', error);
+      throw error;
+    }
+  }
+
+  async deleteStory(utilisateurId,storyId)
+  {
+    try {
+      const utilisateur = await Utilisateur.findById(utilisateurId);
+      if (!utilisateur) {
+        throw new Error('Utilisateur non trouvé');
+      }
+      return await utilisateur.deleteStory(storyId);
+    }   catch (error) {
+      console.error('Erreur lors de l\'ajout du story :', error);
       throw error;
     }
   }

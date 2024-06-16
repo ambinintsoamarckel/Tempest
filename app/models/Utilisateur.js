@@ -1,19 +1,26 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 
-const blockRelationArraysUpdates = async (req, res, next) => {
-  const update = req.body;
+// Middleware pour bloquer les modifications des tableaux relationnels
+const blockRelationArraysUpdates = async function(next) {
+  const update = this.getUpdate();
   const blockedKeys = ['groupes', 'stories', 'messagesPrivesEnvoyes', 'messagesPrivesRecus', 'messagesGroupesEnvoyes', 'messagesGroupesRecus'];
+  const immutableKeys = ['_id', 'password','groupes', 'stories', 'messagesPrivesEnvoyes', 'messagesPrivesRecus', 'messagesGroupesEnvoyes', 'messagesGroupesRecus'];
 
-  for (const key of blockedKeys) {
+  // Enlever les champs immuables de l'objet de mise à jour
+  immutableKeys.forEach(key => {
     if (update.$set && update.$set[key]) {
-      throw new Error(`La modification du tableau "${key}" n'est pas autorisée.`);
+      delete update.$set[key];
     }
+    if (update[key]) {
+      delete update[key];
+    }
+  });
 
-    if (update.$addToSet && update.$addToSet[key]) {
-      throw new Error(`L'ajout d'éléments au tableau "${key}" n'est pas autorisé.`);
-    }
-  }
+
+
+
+  console.log('Mise à jour :', update);
 
   next();
 };
@@ -137,12 +144,17 @@ utilisateurSchema.methods.sendMessageToGroup = async function(groupeId, contenu)
 
 utilisateurSchema.methods.findDiscussionWithPerson = async function(contactId) {
   try {
+    const user = await mongoose.model('Utilisateur').findById(contactId);
+    if (!user) {
+      throw new Error('L\'utilisateur spécifié n\'existe pas.');
+    }
     const messages = await mongoose.model('MessagePrive').find({
       $or: [
         { expediteur: this._id, destinataire: contactId },
         { expediteur: contactId, destinataire: this._id }
       ]
     }).sort({ dateEnvoi: 1 }).populate('expediteur destinataire');
+
 
     // Marquer tous les messages non lus comme lus pour l'utilisateur actuel
     messages.forEach(async message => {
@@ -152,8 +164,34 @@ utilisateurSchema.methods.findDiscussionWithPerson = async function(contactId) {
         await message.save();
       }
     });
+    // Exemple de données simplifiées pour répondre uniquement avec les informations essentielles
+      const messagesSimplifies = messages.map(message => ({
+        contenu: {
+            type: message.contenu.type,
+            texte: message.contenu.texte
+        },
+        _id: message._id,
+        expediteur: {
+            _id: message.expediteur._id,
+            nom: message.expediteur.nom,
+            email: message.expediteur.email,
+            photo: message.expediteur.photo
+        },
+        destinataire: {
+            _id: message.destinataire._id,
+            nom: message.destinataire.nom,
+            email: message.destinataire.email,
+            photo: message.destinataire.photo
+        },
+        lu: message.lu,
+        dateLecture: message.dateLecture,
+        dateEnvoi: message.dateEnvoi
+      }));
 
-    return messages;
+
+
+
+    return messagesSimplifies;
   } catch (error) {
     console.error('Erreur lors de la récupération de la discussion :', error);
     throw error;
@@ -184,7 +222,23 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
       }
     });
 
-    return messages;
+    const messagesSimplifies = messages.map(message => ({
+      _id: message._id,
+      contenu: {
+        type: message.contenu.type,
+        texte: message.contenu.texte
+      },
+      expediteur: {
+        _id: message.expediteur._id,
+        nom: message.expediteur.nom,
+        email: message.expediteur.email,
+        photo: message.expediteur.photo
+      },
+      luPar: message.luPar
+    }));
+
+
+    return messagesSimplifies;
   } catch (error) {
     console.error('Erreur lors de la récupération de la discussion de groupe :', error);
     throw error;
@@ -240,8 +294,9 @@ utilisateurSchema.methods.findLastConversations = async function() {
     const lastConversations = [];
 
     // Récupérer les messages privés envoyés et reçus par l'utilisateur
-    const messagesEnvoyes = await mongoose.model('MessagePrive').find({ expediteur: this._id }).populate('destinataire').sort({ dateEnvoi: -1 });
-    const messagesRecus = await mongoose.model('MessagePrive').find({ destinataire: this._id }).populate('expediteur').sort({ dateEnvoi: -1 });
+    const MessagePrive = mongoose.model('MessagePrive');
+    const messagesEnvoyes = await MessagePrive.find({ expediteur: this._id }).populate('destinataire').sort({ dateEnvoi: -1 });
+    const messagesRecus = await MessagePrive.find({ destinataire: this._id }).populate('expediteur').sort({ dateEnvoi: -1 });
 
     // Combiner et trier les messages privés par date d'envoi en ordre décroissant
     const privateMessages = [...messagesEnvoyes, ...messagesRecus].sort((a, b) => b.dateEnvoi - a.dateEnvoi);
@@ -249,11 +304,27 @@ utilisateurSchema.methods.findLastConversations = async function() {
     // Parcourir les messages privés pour identifier les contacts uniques et les derniers messages échangés
     const privateContactsMap = new Map();
     privateMessages.forEach(message => {
-      const contactId = message.expediteur._id.equals(this._id) ? message.destinataire._id : message.expediteur._id;
+      const isEnvoye = message.expediteur._id.equals(this._id);
+      const contactId = isEnvoye ? message.destinataire._id : message.expediteur._id;
+      const contactType = isEnvoye ? 'utilisateur' : 'utilisateur';
+      const contactNom = isEnvoye ? message.destinataire.nom : message.expediteur.nom;
+      const contactPhoto = isEnvoye ? message.destinataire.photo : message.expediteur.photo;
+      const dernierMessage = {
+        contenu: message.contenu,
+        lu: message.lu,
+        dateEnvoi: message.dateEnvoi,
+        dateLecture: message.dateLecture
+      };
+
       if (!privateContactsMap.has(contactId.toString())) {
         privateContactsMap.set(contactId.toString(), {
-          contact: message.expediteur._id.equals(this._id) ? message.destinataire : message.expediteur,
-          dernierMessage: message
+          contact: {
+            _id: contactId,
+            type: contactType,
+            nom: contactNom,
+            photo: contactPhoto
+          },
+          dernierMessage
         });
       }
     });
@@ -265,15 +336,26 @@ utilisateurSchema.methods.findLastConversations = async function() {
     lastConversations.push(...privateContacts);
 
     // Récupérer les groupes auxquels l'utilisateur appartient
-    const groupes = await mongoose.model('Groupe').find({ membres: this._id });
+    const Groupe = mongoose.model('Groupe');
+    const groupes = await Groupe.find({ membres: this._id });
 
     // Récupérer les messages de groupe pour chaque groupe
+    const MessageGroupe = mongoose.model('MessageGroupe');
     const groupMessagesPromises = groupes.map(async groupe => {
       if (groupe.messages.length > 0) {
-        const dernierMessage = await mongoose.model('MessageGroupe').findOne({ groupe: groupe._id }).sort({ dateEnvoi: -1 }).populate('expediteur');
+        const dernierMessage = await MessageGroupe.findOne({ groupe: groupe._id }).sort({ dateEnvoi: -1 }).populate('expediteur');
         return {
-          contact: groupe,
-          dernierMessage
+          contact: {
+            _id: groupe._id,
+            type: 'groupe',
+            nom: groupe.nom,
+            photo: groupe.photo
+          },
+          dernierMessage: dernierMessage ? {
+            contenu: dernierMessage.contenu,
+            luPar: dernierMessage.luPar,
+            dateEnvoi: dernierMessage.dateEnvoi
+          } : null
         };
       }
     });
@@ -296,6 +378,7 @@ utilisateurSchema.methods.findLastConversations = async function() {
     throw error;
   }
 };
+
 
 
 module.exports = mongoose.model('Utilisateur', utilisateurSchema);

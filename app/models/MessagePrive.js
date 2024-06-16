@@ -11,7 +11,7 @@ const messagePriveSchema = new mongoose.Schema({
 
   lu: {
     type: Boolean,
-    default: null
+    default: false
   },
   dateLecture: {
     type: Date,
@@ -23,13 +23,17 @@ messagePriveSchema.post('save', async function(message) {
   try {
     // Ajouter le message aux messages envoyés de l'expéditeur
     const expediteur = await mongoose.model('Utilisateur').findById(message.expediteur);
-    expediteur.messagesPrivesEnvoyes.push(message._id);
-    await expediteur.save();
+    if (!expediteur.messagesPrivesEnvoyes.includes(message._id)) {
+      expediteur.messagesPrivesEnvoyes.push(message._id);
+      await expediteur.save();
+    }
 
     // Ajouter le message aux messages reçus du destinataire
     const destinataire = await mongoose.model('Utilisateur').findById(message.destinataire);
-    destinataire.messagesPrivesRecus.push(message._id);
-    await destinataire.save();
+    if (!destinataire.messagesPrivesRecus.includes(message._id)) {
+      destinataire.messagesPrivesRecus.push(message._id);
+      await destinataire.save();
+    }
   } catch (error) {
     console.error('Erreur lors de la mise à jour des messages reçus et envoyés pour les messages privés :', error);
     throw error;

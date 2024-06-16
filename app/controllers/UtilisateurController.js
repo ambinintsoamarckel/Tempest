@@ -11,16 +11,14 @@ module.exports = {
     }
   },
 
-  async VoirTousUtilisateur(req,res) {
+  async VoirTousUtilisateur(req, res) {
     try {
-      const utilisateur = await utilisateurService.getAllUtilisateur();
-      res.status(200).json(utilisateur);
+      const utilisateurs = await utilisateurService.getAllUtilisateur();
+      res.status(200).json(utilisateurs);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
   },
-
-
 
   async recupererUtilisateur(req, res) {
     try {
@@ -30,7 +28,6 @@ module.exports = {
       res.status(404).json({ message: error.message });
     }
   },
-
 
   async recupererMonCompte(req, res) {
     try {
@@ -48,7 +45,7 @@ module.exports = {
       res.status(404).json({ message: error.message });
     }
   },
-  
+
   async modifierUtilisateur(req, res) {
     try {
       const utilisateur = await utilisateurService.updateUtilisateur(req.params.id, req.body);
@@ -56,8 +53,8 @@ module.exports = {
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
-  },  
-  
+  },
+
   async modifierMonCompte(req, res) {
     try {
       const utilisateur = await utilisateurService.updateUtilisateur(req.session.passport.user.id, req.body);
@@ -66,7 +63,6 @@ module.exports = {
       res.status(400).json({ message: error.message });
     }
   },
-
 
   async supprimerUtilisateur(req, res) {
     try {
@@ -79,7 +75,7 @@ module.exports = {
 
   async supprimerMonCompte(req, res) {
     try {
-      await utilisateurService.deleteUtilisateur(eq.session.passport.user.id);
+      await utilisateurService.deleteUtilisateur(req.session.passport.user.id);
       res.status(204).send();
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -104,19 +100,46 @@ module.exports = {
     }
   },
 
-  async ajouterAmi(req, res) {
+  async recupererDiscussionAvecGroupe(req, res) {
     try {
-      const utilisateur = await utilisateurService.addFriend(req.session.passport.user.id, req.params.amiId);
-      res.status(200).json(utilisateur);
+      const data = await utilisateurService.findDiscussionWithGroup(req.session.passport.user.id, req.params.groupeId);
+      res.status(200).json(data);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
   },
 
-  async envoyerMessage(req, res) {
+  async envoyerMessageAPersonne(req, res) {
     try {
-      const message = await messageService.createMessage(req.body);
+      const message = await utilisateurService.sendMessageToPerson(req.session.passport.user.id, req.params.contactId, req.body);
       res.status(201).json(message);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
+  async envoyerMessageAGroupe(req, res) {
+    try {
+      const message = await utilisateurService.sendMessageToGroup(req.session.passport.user.id, req.params.groupeId, req.body);
+      res.status(201).json(message);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
+  async ajouterStory(req, res) {
+    try {
+      const story = await utilisateurService.addStory(req.session.passport.user.id, req.body);
+      res.status(201).json(story);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
+  async supprimerStory(req, res) {
+    try {
+      await utilisateurService.deleteStory(req.session.passport.user.id, req.params.storyId);
+      res.status(204).send();
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
