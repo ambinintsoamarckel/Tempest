@@ -135,6 +135,38 @@ module.exports = {
       res.status(400).json({ message: error.message });
     }
   },
+  async changePassword(req, res) {
+    const { oldPassword, newPassword } = req.body;
+
+    try {
+      const result = await userService.changePassword(req.session.passport.user.id, oldPassword, newPassword);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
+  async changePhoto(req, res) {
+    const { newPhotoUrl } = req.body;
+
+    try {
+      const result = await userService.changePhoto(req.session.passport.user.id, newPhotoUrl);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
+  async quitGroup(req, res) {
+    const { groupId } = req.params;
+
+    try {
+      const result = await userService.quitGroup(req.session.passport.user.id, groupId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
 
   async supprimerStory(req, res) {
     try {

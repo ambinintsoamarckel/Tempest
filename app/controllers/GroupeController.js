@@ -1,92 +1,99 @@
-const groupeService = require('../services/GroupeService');
+const GroupeService = require('../services/GroupeService');
+const UtilisateurService = require('../services/UtilisateurService');
 
-module.exports = {
-  async creerGroupe(req, res) {
+const GroupeController = {
+  async createGroupe(req, res) {
     try {
-      const groupe = await groupeService.createGroupe(req.body);
+      const groupe = await GroupeService.createGroupe(req.body);
       res.status(201).json(groupe);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
   },
-  async VoirTousLesGroupe(req,res) {
+
+  async getAllGroupes(req, res) {
     try {
-      const groupe = await groupeService.getAllGroupe();
+      const groupes = await GroupeService.getAllGroupes();
+      res.status(200).json(groupes);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async updateGroupe(req, res) {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    try {
+      const groupe = await GroupeService.updateGroupe(id, updateData);
       res.status(200).json(groupe);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
   },
 
-  async recupererGroupe(req, res) {
-    try {
-      const groupe = await groupeService.findGroupeById(req.params.id);
-      res.status(200).json(groupe);
-    } catch (error) {
-      res.status(404).json({ message: error.message });
-    }
-  },
+  async getGroupe(req, res) {
+    const { id } = req.params;
 
-  async modifierGroupe(req, res) {
     try {
-      const groupe = await groupeService.updateGroupe(req.params.id, req.body);
+      const groupe = await GroupeService.getGroupe(id);
       res.status(200).json(groupe);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
   },
 
-  async supprimerGroupe(req, res) {
-    try {
-      await groupeService.deleteGroupe(req.params.id);
-      res.status(204).send();
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  },
+  async deleteGroupe(req, res) {
+    const { id } = req.params;
 
-  async ajouterMembre(req, res) {
     try {
-      const groupe = await groupeService.addMember(req.params.id, req.params.utilisateurId);
+      const groupe = await GroupeService.deleteGroupe(id, req.session.passport.user.id);
       res.status(200).json(groupe);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
   },
 
-  async retirerMembre(req, res) {
-    try {
-      await groupeService.removeMember(req.params.id, req.params.utilisateurId);
-      res.status(204).send();
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  },
+  async addMember(req, res) {
+    const { id, utilisateurId } = req.params;
 
-  async envoyerMessageGroupe(req, res) {
     try {
-      const message = await groupeService.sendMessageGroupe(req.params.id, req.body);
-      res.status(201).json(message);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  },
-
-  async changerCreateur(req, res) {
-    try {
-      const groupe = await groupeService.changeCreator(req.params.id, req.body.nouveauCreateurId);
+      const groupe = await GroupeService.addMember(id, utilisateurId);
       res.status(200).json(groupe);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
   },
 
-  async recupererMessagesGroupe(req, res) {
+  async removeMember(req, res) {
+    const { id, utilisateurId } = req.params;
+
     try {
-      const messages = await groupeService.getMessagesGroupe(req.params.id);
-      res.status(200).json(messages);
+      // Vérifier si l'utilisateur connecté est le créateur du groupe
+      const groupe = await GroupeService.getGroupe(id);
+      if (groupe.createur.toString() !== req.session.passport.user.id) {
+        return res.status(403).json({ message: 'Vous n\'êtes pas autorisé à effectuer cette action.' });
+      }
+
+      // Si autorisé, retirer le membre
+      const result = await GroupeService.removeMember(id, utilisateurId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
+  async changeGroupPhoto(req, res) {
+    const { id } = req.params;
+    const { newPhotoUrl } = req.body;
+
+    try {
+      const groupe = await GroupeService.changeGroupPhoto(id, newPhotoUrl);
+      res.status(200).json(groupe);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
   }
 };
+
+module.exports = GroupeController;

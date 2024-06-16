@@ -1,20 +1,56 @@
 const mongoose = require('mongoose');
 
-const blockRelationArraysUpdates = async (req, res, next) => {
-  const update = req.body;
-  const blockedKeys = ['membres', 'messages'];
+const blockRelationArraysUpdates = async function(next) {
+  const update = this.getUpdate();
+ 
+  const immutableKeys = ['_id', 'messages','photo','createur','membres'];
 
-  for (const key of blockedKeys) {
+  // Enlever les champs immuables de l'objet de mise à jour
+  immutableKeys.forEach(key => {
     if (update.$set && update.$set[key]) {
-      throw new Error(`La modification du tableau "${key}" n'est pas autorisée.`);
+      delete update.$set[key];
     }
-
-    if (update.$addToSet && update.$addToSet[key]) {
-      throw new Error(`L'ajout d'éléments au tableau "${key}" n'est pas autorisé.`);
+    if (update[key]) {
+      delete update[key];
     }
-  }
+  });
+console.log('Mise à jour :', update);
 
   next();
+};
+const handleGroupDeletion = async function(next) {
+  try {
+    const groupe = await this.model.findOne(this.getQuery());
+
+    if (!groupe) {
+      throw new Error('Groupe non trouvé');
+    }
+
+    // Retirer le groupe de la liste des groupes de chaque utilisateur membre
+    await mongoose.model('Utilisateur').updateMany(
+      { _id: { $in: groupe.membres } },
+      { $pull: { groupes: groupe._id } }
+    );
+
+    // Retirer les messages de groupe des collections des utilisateurs
+    await mongoose.model('Utilisateur').updateMany(
+      { _id: { $in: groupe.membres } },
+      { 
+        $pull: { 
+          messagesGroupesEnvoyes: { $in: groupe.messages },
+          messagesGroupesRecus: { $in: groupe.messages }
+        }
+      }
+    );
+
+    // Supprimer les messages de groupe
+    await mongoose.model('MessageGroupe').deleteMany({ _id: { $in: groupe.messages } });
+
+    next();
+  } catch (error) {
+    console.error('Erreur lors de la suppression du groupe :', error);
+    next(error);
+  }
 };
 const groupeSchema = new mongoose.Schema({
   nom: {
@@ -22,6 +58,10 @@ const groupeSchema = new mongoose.Schema({
     required: true,
     trim: true,
     maxlength: 50
+  },
+  photo: {
+    type: String,
+    default: null
   },
   description: {
     type: String,
@@ -80,11 +120,11 @@ groupeSchema.methods.ajouterMembre = async function(utilisateurId) {
     await this.save();
 
 
-    const nouveaumembre = await mongoose.model('Utilisateur').findById(utilisateurId);
+/*     const nouveaumembre = await mongoose.model('Utilisateur').findById(utilisateurId);
     this.messages.forEach(async message => {
           nouveaumembre.messagesGroupesRecus.push(message._id);
           await nouveaumembre.save();
-        });
+        }); */
 
     return 'Utilisateur ajouté au groupe avec succès.';
   } catch (error) {
@@ -116,7 +156,20 @@ groupeSchema.methods.supprimerMembre = async function(utilisateurId) {
     throw error;
   }
 };
+groupeSchema.methods.changePhoto = async function(newPhotoUrl) {
+  try {
+    // Mettre à jour le champ photo avec la nouvelle URL de la photo
+    this.photo = newPhotoUrl;
 
+    // Enregistrer les modifications
+    await this.save();
+    return 'Photo de profil mise à jour avec succès.';
+  } catch (error) {
+    console.error('Erreur lors du changement de photo de profil :', error);
+    throw error;
+  }
+};
+groupeSchema.pre('findOneAndDelete', handleGroupDeletion);
 
 
 module.exports = mongoose.model('Groupe', groupeSchema);

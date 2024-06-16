@@ -170,6 +170,44 @@ class UtilisateurService {
       throw error;
     }
   }
+  async changePassword(userId, oldPassword, newPassword) {
+    try {
+      const user = await Utilisateur.findById(userId);
+      if (!user) {
+        throw new Error('Utilisateur non trouvé.');
+      }
+      await user.changePassword(oldPassword, newPassword);
+      return { message: 'Mot de passe changé avec succès.' };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async changePhoto(userId, newPhotoUrl) {
+    try {
+      const user = await Utilisateur.findById(userId);
+      if (!user) {
+        throw new Error('Utilisateur non trouvé.');
+      }
+      await user.changePhoto(newPhotoUrl);
+      return { message: 'Photo de profil mise à jour avec succès.' };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async quitGroup(userId, groupId) {
+    try {
+      const user = await Utilisateur.findById(userId);
+      if (!user) {
+        throw new Error('Utilisateur non trouvé.');
+      }
+      const result = await user.quitGroup(groupId);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 module.exports = new UtilisateurService();

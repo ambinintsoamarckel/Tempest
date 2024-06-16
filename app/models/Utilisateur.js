@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const blockRelationArraysUpdates = async function(next) {
   const update = this.getUpdate();
   const blockedKeys = ['groupes', 'stories', 'messagesPrivesEnvoyes', 'messagesPrivesRecus', 'messagesGroupesEnvoyes', 'messagesGroupesRecus'];
-  const immutableKeys = ['_id', 'password','groupes', 'stories', 'messagesPrivesEnvoyes', 'messagesPrivesRecus', 'messagesGroupesEnvoyes', 'messagesGroupesRecus'];
+  const immutableKeys = ['_id', 'password','groupes', 'stories', 'messagesPrivesEnvoyes', 'messagesPrivesRecus', 'messagesGroupesEnvoyes', 'messagesGroupesRecus','photo'];
 
   // Enlever les champs immuables de l'objet de mise à jour
   immutableKeys.forEach(key => {
@@ -217,7 +217,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
         entry.utilisateur.equals(this._id) && entry.lu
       );
       if (!isUserMember) {
-        message.luPar.push({ utilisateur: this._id, dateLecture: Date.now(), lu: true });
+        message.luPar.push({ utilisateur: this._id, dateLecture: Date.now() });
         await message.save();
       }
     });
@@ -375,6 +375,67 @@ utilisateurSchema.methods.findLastConversations = async function() {
     return lastConversations;
   } catch (error) {
     console.error('Erreur lors de la récupération des dernières conversations :', error);
+    throw error;
+  }
+};
+utilisateurSchema.methods.changePassword = async function(oldPassword, newPassword) {
+  try {
+    // Vérifier si l'ancien mot de passe est correct
+    if (!this.validatePassword(oldPassword)) {
+      throw new Error('L\'ancien mot de passe est incorrect.');
+    }
+
+    // Générer un nouveau hash pour le nouveau mot de passe
+    this.salt = crypto.randomBytes(16).toString('hex');
+    this.password = crypto.pbkdf2Sync(newPassword, this.salt, 310000, 32, 'sha256').toString('hex');
+
+    // Enregistrer le nouvel utilisateur avec le mot de passe mis à jour
+    await this.save();
+    return 'Mot de passe changé avec succès.';
+  } catch (error) {
+    console.error('Erreur lors du changement de mot de passe :', error);
+    throw error;
+  }
+};
+
+  utilisateurSchema.methods.changePhoto = async function(newPhotoUrl) {
+    try {
+      // Mettre à jour le champ photo avec la nouvelle URL de la photo
+      this.photo = newPhotoUrl;
+
+      // Enregistrer les modifications
+      await this.save();
+      return 'Photo de profil mise à jour avec succès.';
+    } catch (error) {
+      console.error('Erreur lors du changement de photo de profil :', error);
+      throw error;
+    }
+  };
+// Nouvelle méthode pour quitter un groupe
+utilisateurSchema.methods.quitGroup = async function(groupeId) {
+  try {
+    const groupe = await mongoose.model('Groupe').findById(groupeId);
+    if (!groupe) {
+      throw new Error('Le groupe spécifié n\'existe pas.');
+    }
+
+    const memberIndex = groupe.membres.indexOf(this._id);
+    if (memberIndex === -1) {
+      throw new Error('Vous n\'êtes pas membre de ce groupe.');
+    }
+
+    groupe.membres.splice(memberIndex, 1);
+    await groupe.save();
+
+    const groupIndex = this.groupes.indexOf(groupeId);
+    if (groupIndex > -1) {
+      this.groupes.splice(groupIndex, 1);
+      await this.save();
+    }
+
+    return 'Vous avez quitté le groupe avec succès.';
+  } catch (error) {
+    console.error('Erreur lors de la sortie du groupe :', error);
     throw error;
   }
 };
