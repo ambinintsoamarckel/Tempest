@@ -139,7 +139,7 @@ module.exports = {
     const { oldPassword, newPassword } = req.body;
 
     try {
-      const result = await userService.changePassword(req.session.passport.user.id, oldPassword, newPassword);
+      const result = await utilisateurService.changePassword(req.session.passport.user.id, oldPassword, newPassword);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -150,7 +150,7 @@ module.exports = {
     const { newPhotoUrl } = req.body;
 
     try {
-      const result = await userService.changePhoto(req.session.passport.user.id, newPhotoUrl);
+      const result = await utilisateurService.changePhoto(req.session.passport.user.id, newPhotoUrl);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -161,7 +161,17 @@ module.exports = {
     const { groupId } = req.params;
 
     try {
-      const result = await userService.quitGroup(req.session.passport.user.id, groupId);
+      const result = await utilisateurService.quitGroup(req.session.passport.user.id, groupId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+  async createGroup(req, res) {
+    const { nom,photo,membres } = req.body;
+
+    try {
+      const result = await utilisateurService.createGroup(req.session.passport.user.id, nom,photo,membres);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });

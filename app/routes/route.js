@@ -33,6 +33,16 @@ module.exports = (app) => {
 
   app.route('/me/quitGroup/:groupId')
     .post(protectedRoutes, utilisateurController.quitGroup);
+  app.route('/me/createGroup')
+    .post(protectedRoutes, utilisateurController.createGroup);
+
+  app.route('/messages/personne/:contactId')
+    .post(protectedRoutes, utilisateurController.envoyerMessageAPersonne)
+    .get(protectedRoutes, utilisateurController.recupererDiscussionAvecContact);
+
+  app.route('/messages/groupe/:groupeId')
+    .post(protectedRoutes, utilisateurController.envoyerMessageAGroupe)
+    .get(protectedRoutes, utilisateurController.recupererDiscussionAvecGroupe);
 
   // Route pour récupérer la session de l'utilisateur
   app.route('/session')
@@ -49,7 +59,7 @@ module.exports = (app) => {
 
   // Routes pour les groupes
   app.route('/groupes')
-    .post(protectedRoutes, groupeController.createGroupe)
+    .post(protectedRoutes,utilisateurController.createGroup)
     .get(protectedRoutes, groupeController.getAllGroupes);
 
   app.route('/groupes/:id')

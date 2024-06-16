@@ -208,6 +208,19 @@ class UtilisateurService {
       throw error;
     }
   }
+
+  async createGroup(userId,nomGroupe, photoGroupe, membresIds) {
+    try {
+      const user = await Utilisateur.findById(userId);
+      if (!user) {
+        throw new Error('Utilisateur non trouvé.');
+      }
+      const result = await user.createGroup(nomGroupe, photoGroupe, membresIds);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 module.exports = new UtilisateurService();

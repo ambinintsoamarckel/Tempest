@@ -439,6 +439,37 @@ utilisateurSchema.methods.quitGroup = async function(groupeId) {
     throw error;
   }
 };
+utilisateurSchema.methods.createGroup = async function(nomGroupe, photoGroupe, membresIds) {
+  try {
+    const Groupe = mongoose.model('Groupe');
+
+    // Vérifier que le nombre minimum de membres est respecté
+    if (!membresIds || membresIds.length < 2) {
+      throw new Error('Un groupe doit avoir au moins trois membres, y compris le créateur.');
+    }
+
+    // Créer une nouvelle instance de Groupe
+    const nouveauGroupe = new Groupe({
+      nom: nomGroupe,
+      photo: photoGroupe || null,
+      membres: [this._id, ...membresIds],
+      createur:this._id
+    });
+
+    // Sauvegarder le nouveau groupe
+    await nouveauGroupe.save();
+
+    // Ajouter l'ID du nouveau groupe au tableau groupes de l'utilisateur
+/*     this.groupes.push(nouveauGroupe._id);
+    await this.save(); */
+
+    return 'Groupe créé avec succès.';
+  } catch (error) {
+    console.error('Erreur lors de la création du groupe :', error);
+    throw error;
+  }
+};
+
 
 
 
