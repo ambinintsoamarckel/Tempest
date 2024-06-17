@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+const fs=require('fs');
+const { formatPhotoPath } = require('../../config/utils');
 
 // Middleware pour bloquer les modifications des tableaux relationnels
 const blockRelationArraysUpdates = async function(next) {
@@ -16,14 +18,28 @@ const blockRelationArraysUpdates = async function(next) {
       delete update[key];
     }
   });
-
-
-
-
-  console.log('Mise à jour :', update);
-
   next();
 };
+/* const addPhotoToUtilisateur = async (utilisateurObject, req, next) => {
+  const photoPath = utilisateurObject.photo; // URL de la photo de profil
+
+  if (photoPath) {
+    try {
+      const photoBuffer = await fs.promises.readFile(photoPath);
+      utilisateurObject.photo = photoBuffer.toString('base64'); // Convertir le tampon en base64
+    } catch (error) {
+      // Gérer l'erreur de lecture du fichier photo
+      console.error(`Erreur lors de la lecture de la photo de l'utilisateur ${utilisateurObject._id} :`, error);
+      utilisateurObject.photo = null; // Définir la photo à null si une erreur se produit
+    }
+  } else {
+    // Cas où la propriété photo est absente ou null
+    utilisateurObject.photo = null; // Définir la photo à null par défaut
+  }
+
+  next();
+}; */
+
 const utilisateurSchema = new mongoose.Schema({
   nom: {
     type: String,
@@ -89,8 +105,12 @@ const utilisateurSchema = new mongoose.Schema({
 
 // Enregistrement du middleware au niveau du modèle
 utilisateurSchema.pre('findOneAndUpdate', blockRelationArraysUpdates);
-
-
+utilisateurSchema.methods.toJSON = function() {
+  const utilisateurObject = this.toObject();
+  utilisateurObject.photo = formatPhotoPath(utilisateurObject.photo);
+  return utilisateurObject;
+};
+/* utilisateurSchema.post('toJSON', addPhotoToUtilisateur); */
 utilisateurSchema.methods.setPassword = function() {
   this.salt = crypto.randomBytes(16).toString('hex');
   this.password = crypto.pbkdf2Sync(this.password, this.salt, 310000, 32, 'sha256').toString('hex');

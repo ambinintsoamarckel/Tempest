@@ -5,7 +5,7 @@ const mongoose = require('mongoose'); // Importation de mongoose pour la connexi
 const Utilisateur = mongoose.model('Utilisateur'); // Remplacez par le chemin d'accès à votre modèle utilisateur
 
 // Définir le délai d'inactivité en minutes
-const inactivityThreshold = 15;
+const inactivityThreshold = 1;
 
 // Fonction de recherche et de mise à jour de la présence
 async function checkAndUpdatePresence() {

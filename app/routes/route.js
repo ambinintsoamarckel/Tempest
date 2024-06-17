@@ -4,6 +4,7 @@ const messageController = require('../controllers/MessageController');
 const groupeController = require('../controllers/GroupeController');
 const storyController = require('../controllers/StoryController');
 const passport = require('passport');
+const { uploadProfilePhoto } = require('../../config/multerConfig');
 
 // Middleware pour les routes protégées
 const protectedRoutes = require('./protectedRoutes');
@@ -15,7 +16,7 @@ module.exports = (app) => {
     .get(utilisateurController.VoirTousUtilisateur);
 
   app.route('/utilisateurs/:id')
-    .get(protectedRoutes, utilisateurController.recupererUtilisateur)
+    .get( utilisateurController.recupererUtilisateur)
     .put(protectedRoutes, utilisateurController.modifierUtilisateur)
     .delete(protectedRoutes, utilisateurController.supprimerUtilisateur);
 
@@ -29,7 +30,7 @@ module.exports = (app) => {
     .put(protectedRoutes, utilisateurController.changePassword);
 
   app.route('/me/changePhoto')
-    .put(protectedRoutes, utilisateurController.changePhoto);
+    .put(protectedRoutes, uploadProfilePhoto.single('photo'),utilisateurController.changePhoto);
 
   app.route('/me/quitGroup/:groupId')
     .post(protectedRoutes, utilisateurController.quitGroup);
