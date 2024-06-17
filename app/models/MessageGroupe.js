@@ -14,7 +14,7 @@ const messageGroupeSchema = new mongoose.Schema({
         ref: 'Utilisateur'
       },
       dateLecture: Date,
-      lu: Boolean
+      _id: false
     }],
 
 });

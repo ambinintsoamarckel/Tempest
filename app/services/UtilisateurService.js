@@ -17,7 +17,7 @@ class UtilisateurService {
   async findUtilisateurById(utilisateurId) {
     try {
     
-      const utilisateur = await Utilisateur.findById(utilisateurId).populate('messagesPrivesEnvoyes messagesPrivesRecus messagesGroupesEnvoyes messagesGroupesRecus groupes');
+      const utilisateur = await Utilisateur.findById(utilisateurId).populate('groupes');
       return utilisateur;
     } catch (error) {
       console.error('Erreur lors de la création de l\'utilisateur :', error);
@@ -27,7 +27,7 @@ class UtilisateurService {
   async getAllUtilisateur() {
     try {
     
-      const utilisateur = await Utilisateur.find().populate('messagesPrivesEnvoyes messagesPrivesRecus messagesGroupesEnvoyes messagesGroupesRecus groupes');
+      const utilisateur = await Utilisateur.find().populate('groupes');
       return utilisateur;
     } catch (error) {
       console.error('Erreur lors de la création de l\'utilisateur :', error);

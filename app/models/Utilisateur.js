@@ -37,6 +37,10 @@ const utilisateurSchema = new mongoose.Schema({
     trim: true,
     lowercase: true
   },
+  lastActivity: {
+    type: Date,
+    default: Date.now
+  },
   password: {
     type: String,
     required: true,
@@ -99,6 +103,7 @@ utilisateurSchema.methods.validatePassword = function(password) {
 
 utilisateurSchema.methods.sendMessageToPerson = async function(destinataireId, contenu) {
   try {
+    await this.UpdatePresence();
     const destinataire = await mongoose.model('Utilisateur').findById(destinataireId);
     if (!destinataire) {
       throw new Error('Le destinataire spécifié n\'existe pas.');
@@ -122,6 +127,7 @@ utilisateurSchema.methods.sendMessageToPerson = async function(destinataireId, c
 
 utilisateurSchema.methods.sendMessageToGroup = async function(groupeId, contenu) {
   try {
+    await this.UpdatePresence();
     const groupe = await mongoose.model('Groupe').findById(groupeId);
     if (!groupe) {
       throw new Error('Le groupe spécifié n\'existe pas.');
@@ -144,6 +150,7 @@ utilisateurSchema.methods.sendMessageToGroup = async function(groupeId, contenu)
 
 utilisateurSchema.methods.findDiscussionWithPerson = async function(contactId) {
   try {
+    await this.UpdatePresence();
     const user = await mongoose.model('Utilisateur').findById(contactId);
     if (!user) {
       throw new Error('L\'utilisateur spécifié n\'existe pas.');
@@ -201,6 +208,7 @@ utilisateurSchema.methods.findDiscussionWithPerson = async function(contactId) {
 
 utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
   try {
+    await this.UpdatePresence();
     const groupe = await mongoose.model('Groupe').findById(groupeId);
     if (!groupe) {
       throw new Error('Le groupe spécifié n\'existe pas.');
@@ -212,15 +220,15 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
     const messages = await mongoose.model('MessageGroupe').find({ groupe: groupeId }).sort({ dateEnvoi: 1 }).populate('expediteur');
 
     // Marquer tous les messages non lus comme lus pour l'utilisateur actuel
-    messages.forEach(async message => {
-      const isUserMember = message.luPar.some(entry =>
-        entry.utilisateur.equals(this._id) && entry.lu
-      );
-      if (!isUserMember) {
+    for (const message of messages) {
+      const isUserMember = message.luPar.some(entry => entry.utilisateur.equals(this._id));
+      const ExpId = message.expediteur._id;
+      if (!isUserMember&&!ExpId.equals(this._id)) {
         message.luPar.push({ utilisateur: this._id, dateLecture: Date.now() });
+        console.log(message.luPar);
         await message.save();
       }
-    });
+    }
 
     const messagesSimplifies = messages.map(message => ({
       _id: message._id,
@@ -237,15 +245,16 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
       luPar: message.luPar
     }));
 
-
     return messagesSimplifies;
   } catch (error) {
     console.error('Erreur lors de la récupération de la discussion de groupe :', error);
     throw error;
   }
 };
+
 utilisateurSchema.methods.addStory = async function(contenu) {
   try {
+    await this.UpdatePresence();
     // Créer une nouvelle instance de Story
     const nouvelleStory = new mongoose.model('Story')({
       utilisateur: this._id,
@@ -268,6 +277,7 @@ utilisateurSchema.methods.addStory = async function(contenu) {
 
 utilisateurSchema.methods.deleteStory = async function(storyId) {
   try {
+    await this.UpdatePresence();
     // Vérifier si l'utilisateur a créé la story
     const index = this.stories.indexOf(storyId);
     if (index === -1) {
@@ -291,6 +301,7 @@ utilisateurSchema.methods.deleteStory = async function(storyId) {
 
 utilisateurSchema.methods.findLastConversations = async function() {
   try {
+    await this.UpdatePresence();
     const lastConversations = [];
 
     // Récupérer les messages privés envoyés et reçus par l'utilisateur
@@ -372,6 +383,7 @@ utilisateurSchema.methods.findLastConversations = async function() {
     // Trier toutes les conversations par date de dernier message en ordre décroissant
     lastConversations.sort((a, b) => b.dernierMessage.dateEnvoi - a.dernierMessage.dateEnvoi);
 
+
     return lastConversations;
   } catch (error) {
     console.error('Erreur lors de la récupération des dernières conversations :', error);
@@ -380,6 +392,7 @@ utilisateurSchema.methods.findLastConversations = async function() {
 };
 utilisateurSchema.methods.changePassword = async function(oldPassword, newPassword) {
   try {
+    await this.UpdatePresence();
     // Vérifier si l'ancien mot de passe est correct
     if (!this.validatePassword(oldPassword)) {
       throw new Error('L\'ancien mot de passe est incorrect.');
@@ -391,7 +404,8 @@ utilisateurSchema.methods.changePassword = async function(oldPassword, newPasswo
 
     // Enregistrer le nouvel utilisateur avec le mot de passe mis à jour
     await this.save();
-    return 'Mot de passe changé avec succès.';
+
+    return this;
   } catch (error) {
     console.error('Erreur lors du changement de mot de passe :', error);
     throw error;
@@ -400,12 +414,14 @@ utilisateurSchema.methods.changePassword = async function(oldPassword, newPasswo
 
   utilisateurSchema.methods.changePhoto = async function(newPhotoUrl) {
     try {
+      await this.UpdatePresence();
       // Mettre à jour le champ photo avec la nouvelle URL de la photo
       this.photo = newPhotoUrl;
 
       // Enregistrer les modifications
       await this.save();
-      return 'Photo de profil mise à jour avec succès.';
+ 
+      return this;
     } catch (error) {
       console.error('Erreur lors du changement de photo de profil :', error);
       throw error;
@@ -414,6 +430,7 @@ utilisateurSchema.methods.changePassword = async function(oldPassword, newPasswo
 // Nouvelle méthode pour quitter un groupe
 utilisateurSchema.methods.quitGroup = async function(groupeId) {
   try {
+    await this.UpdatePresence();
     const groupe = await mongoose.model('Groupe').findById(groupeId);
     if (!groupe) {
       throw new Error('Le groupe spécifié n\'existe pas.');
@@ -433,7 +450,9 @@ utilisateurSchema.methods.quitGroup = async function(groupeId) {
       await this.save();
     }
 
-    return 'Vous avez quitté le groupe avec succès.';
+   
+    return this;
+
   } catch (error) {
     console.error('Erreur lors de la sortie du groupe :', error);
     throw error;
@@ -441,6 +460,7 @@ utilisateurSchema.methods.quitGroup = async function(groupeId) {
 };
 utilisateurSchema.methods.createGroup = async function(nomGroupe, photoGroupe, membresIds) {
   try {
+    await this.UpdatePresence();
     const Groupe = mongoose.model('Groupe');
 
     // Vérifier que le nombre minimum de membres est respecté
@@ -467,6 +487,31 @@ utilisateurSchema.methods.createGroup = async function(nomGroupe, photoGroupe, m
   } catch (error) {
     console.error('Erreur lors de la création du groupe :', error);
     throw error;
+  }
+};
+utilisateurSchema.methods.UpdatePresence = async function() {
+  try {
+    // Vérifier si la présence est actuellement "inactif"
+    if (this.presence === 'inactif') {
+      // Mettre à jour la présence à "en ligne"
+      this.presence = 'en ligne';
+
+      // Mettre à jour l'horodatage de la dernière activité
+      this.lastActivity = Date.now();
+
+      // Enregistrer les modifications dans la base de données
+      await this.save();
+    }
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la présence :', error);
+  }
+};
+utilisateurSchema.methods.setInactif = async function() {
+  try {
+      this.presence = 'inactif';
+      await this.save();
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la présence :', error);
   }
 };
 

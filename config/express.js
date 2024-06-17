@@ -7,7 +7,8 @@ var AuthRoute = require('../app/routes/Auth');
 var crypto= require('crypto');
 const bodyParser= require('body-parser');
 const cors =require('cors');
-
+const updatePresence=require('./tasks')
+const cron=require('node-cron');
 
 const generateSecret = () => {
   //return crypto.randomBytes(32).toString('hex');
@@ -50,4 +51,5 @@ db.once('open', () => {
 
   // Démarrer le serveur
   app.listen(3000, () => console.log('Serveur Express démarré sur le port 3000'));
+  var task = cron.schedule('* * * * *', updatePresence);
 });

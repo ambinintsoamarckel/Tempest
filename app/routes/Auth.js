@@ -4,6 +4,7 @@ const passport = require('passport');
 const crypto = require('crypto');
 const Utilisateur = require('../models/Utilisateur');
 const router = express.Router();
+const UtilisateurService= require('../services/UtilisateurService');
 
 // Configurer Passport
 passport.use(new LocalStrategy(
@@ -50,16 +51,28 @@ router.post('/login', (req, res, next) => {
     if (!user) { return res.status(401).json(info); }
     req.logIn(user, (err) => {
       if (err) { return next(err); }
-      return res.status(200).json(req.user);
+
+      // Mettre à jour la présence à "en ligne" après une connexion réussie
+      user.presence = 'en ligne';
+      user.save()
+        .then(() => res.status(200).json(req.user))
+        .catch(error => res.status(500).json({ message: 'Échec de la mise à jour de la présence' }));
     });
   })(req, res, next);
 });
 
 // Route pour le logout
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
+  user= await UtilisateurService.findUtilisateurById(req.user.id);
+  user.presence = 'inactif';
+  user.save().catch(error => res.status(500).json({ message: 'Presence update failed' }));
   req.logout((err) => {
     if (err) { return res.status(500).json({ message: 'Logout failed' }); }
+
+    // Mettre à jour la présence à "inactif" avant le logout
     res.status(200).json({ message: 'Logged out' });
+  
+
   });
 });
 
