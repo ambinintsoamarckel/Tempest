@@ -4,7 +4,8 @@ const messageController = require('../controllers/MessageController');
 const groupeController = require('../controllers/GroupeController');
 const storyController = require('../controllers/StoryController');
 const passport = require('passport');
-const { uploadProfilePhoto } = require('../../config/multerConfig');
+const multer = require('multer');
+const { uploadProfilePhoto,uploadMessageFile,uploadGroupPhoto} = require('../../config/multerConfig');
 
 // Middleware pour les routes protégées
 const protectedRoutes = require('./protectedRoutes');
@@ -38,13 +39,26 @@ module.exports = (app) => {
     .post(protectedRoutes, utilisateurController.createGroup);
 
   app.route('/messages/personne/:contactId')
-    .post(protectedRoutes, utilisateurController.envoyerMessageAPersonne)
+    .post(protectedRoutes, (req, res, next) => {
+      uploadMessageFile.single('file')(req, res, function (err) {
+        if (err instanceof multer.MulterError || err) {
+          return res.status(400).json({ message: err.message });
+        }
+        next();
+      });
+    }, utilisateurController.envoyerMessageAPersonne)
     .get(protectedRoutes, utilisateurController.recupererDiscussionAvecContact);
 
   app.route('/messages/groupe/:groupeId')
-    .post(protectedRoutes, utilisateurController.envoyerMessageAGroupe)
+    .post(protectedRoutes, (req, res, next) => {
+      uploadMessageFile.single('file')(req, res, function (err) {
+        if (err instanceof multer.MulterError || err) {
+          return res.status(400).json({ message: err.message });
+        }
+        next();
+      });
+    }, utilisateurController.envoyerMessageAGroupe)
     .get(protectedRoutes, utilisateurController.recupererDiscussionAvecGroupe);
-
   // Route pour récupérer la session de l'utilisateur
   app.route('/session')
     .get(protectedRoutes, utilisateurController.recupererSession);

@@ -110,11 +110,6 @@ const utilisateurSchema = new mongoose.Schema({
 
 // Enregistrement du middleware au niveau du modèle
 utilisateurSchema.pre('findOneAndUpdate', blockRelationArraysUpdates);
-utilisateurSchema.methods.toJSON = function() {
-  const utilisateurObject = this.toObject();
-  utilisateurObject.photo = formatPhotoPath(utilisateurObject.photo);
-  return utilisateurObject;
-};
 /* utilisateurSchema.post('toJSON', addPhotoToUtilisateur); */
 utilisateurSchema.methods.setPassword = function() {
   this.salt = crypto.randomBytes(16).toString('hex');
@@ -198,10 +193,7 @@ utilisateurSchema.methods.findDiscussionWithPerson = async function(contactId) {
     });
     // Exemple de données simplifiées pour répondre uniquement avec les informations essentielles
       const messagesSimplifies = messages.map(message => ({
-        contenu: {
-            type: message.contenu.type,
-            texte: message.contenu.texte
-        },
+        contenu:message.contenu,
         _id: message._id,
         expediteur: {
             _id: message.expediteur._id,
@@ -256,11 +248,8 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
     }
 
     const messagesSimplifies = messages.map(message => ({
-      _id: message._id,
-      contenu: {
-        type: message.contenu.type,
-        texte: message.contenu.texte
-      },
+      
+      contenu:message.contenu,
       expediteur: {
         _id: message.expediteur._id,
         nom: message.expediteur.nom,
@@ -538,6 +527,51 @@ utilisateurSchema.methods.setInactif = async function() {
       await this.save();
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la présence :', error);
+  }
+};
+utilisateurSchema.methods.deleteMessage = async function(messageId, messageType) {
+  try {
+    await this.UpdatePresence();
+    const MessagePrive = mongoose.model('MessagePrive'); // Assurez-vous de pointer vers le bon fichier de modèle
+    const MessageGroupe = mongoose.model('MessageGroupe');
+
+    let message;
+    if (messageType === 'prive') {
+      message = await MessagePrive.findById(messageId);
+    } else if (messageType === 'groupe') {
+      message = await MessageGroupe.findById(messageId);
+    } else {
+      throw new Error('Type de message invalide.');
+    }
+
+    if (!message) {
+      throw new Error('Le message spécifié n\'existe pas.');
+    }
+
+    // Vérifier si l'utilisateur est l'expéditeur du message
+    if (!message.expediteur.equals(this._id)) {
+      throw new Error('Vous n\'êtes pas autorisé à supprimer ce message.');
+    }
+
+    // Supprimer les fichiers associés si nécessaire
+    if (message.contenu && ['image', 'audio', 'video', 'fichier'].includes(message.contenu.type)) {
+      const filePath = path.join(__dirname, '../../', message.contenu[message.contenu.type].split('3000/')[1]);
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
+        }
+      });
+    }
+
+    // Supprimer le message de la base de données
+    await message.remove();
+
+    // Les références dans les collections appropriées seront mises à jour par les middlewares
+
+    return 'Message supprimé avec succès.';
+  } catch (error) {
+    console.error('Erreur lors de la suppression du message :', error);
+    throw error;
   }
 };
 

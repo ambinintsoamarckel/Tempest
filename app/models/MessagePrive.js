@@ -40,7 +40,7 @@ messagePriveSchema.post('save', async function(message) {
   }
 });
 
-messagePriveSchema.post('findOneAndDelete', async function(message) {
+messagePriveSchema.post('remove', async function(message) {
   try {
     // Retirer le message des messages envoyés de l'expéditeur
     const expediteur = await mongoose.model('Utilisateur').findById(message.expediteur);

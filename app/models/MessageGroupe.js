@@ -43,7 +43,7 @@ messageGroupeSchema.post('save', async function(message) {
   }
 });
 // Middleware pour la suppression de messages de groupe
-messageGroupeSchema.post('findOneAndDelete', async function(message) {
+messageGroupeSchema.post('remove', async function(message) {
   try {
     // Retirer le message des messages envoyés de l'expéditeur
     const expediteur = await mongoose.model('Utilisateur').findById(message.expediteur);

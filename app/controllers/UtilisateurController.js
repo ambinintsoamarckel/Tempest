@@ -1,9 +1,44 @@
 const utilisateurService = require('../services/UtilisateurService');
 const messageService = require('../services/MessageService');
-const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
+function prepareMessageData(req) {
+  let messageData;
 
+  if (req.file) {
+    const newFileUrl = req.file.path;
+    const fileUrl = `${req.protocol}://mahm.tempest.dov:3000/${newFileUrl}`;
+    let fileType;
+
+    if (req.file.mimetype.startsWith('image/')) {
+      fileType = 'image';
+    } else if (req.file.mimetype.startsWith('audio/')) {
+      fileType = 'audio';
+    } else if (req.file.mimetype.startsWith('video/')) {
+      fileType = 'video';
+    } else {
+      fileType = 'fichier';
+    }
+
+    messageData = {
+      contenu: {
+        type: fileType,
+        [fileType]: fileUrl
+      }
+    };
+  } else if (req.body.texte) {
+    messageData = {
+      contenu: {
+        type: 'texte',
+        texte: req.body.texte
+      }
+    };
+  } else {
+    throw new Error('Aucun contenu valide trouvé');
+  }
+
+  return messageData;
+}
 module.exports = {
   async creerUtilisateur(req, res) {
     try {
@@ -28,11 +63,7 @@ module.exports = {
       if (!utilisateur) {
         return res.status(404).json({ message: 'Utilisateur non trouvé' });
       }
-      const photoPath = utilisateur.photo;
-      const imageData = fs.readFileSync(photoPath);
-      const mimeType = utilisateur.mimetype;
-      res.writeHead(200, { 'Content-Type': mimeType });
-      res.end(imageData); // Chemin de la photo stocké dans la BDD
+      res.status(200).json(utilisateur);
     } catch (error) {
       console.error(error);
       res.status(400).json({ message: error });
@@ -48,22 +79,7 @@ module.exports = {
         return res.status(404).json({ message: 'Utilisateur non trouvé' });
       }
 
-      // Récupération des informations utilisateur
-      const utilisateurData = utilisateur.toObject();
-
-      // Chemin de la photo de profil
-      const photoPath = utilisateur.photo;
-
-      // Créer une URL pour la photo de profil
-      const photoUrl = photoPath ? `${req.protocol}://192.168.43.20:3000/uploads/profilePhotos/${path.basename(photoPath)}` : null;
-
-      // Ajouter l'URL de la photo de profil aux données utilisateur
-      const responseData = {
-        ...utilisateurData,
-        photoUrl: photoUrl
-      };
-
-      res.status(200).json(responseData);
+      res.status(200).json(utilisateur);
     } catch (error) {
       console.error(error);
       res.status(400).json({ message: error.message });
@@ -142,8 +158,10 @@ module.exports = {
   },
 
   async envoyerMessageAPersonne(req, res) {
+
     try {
-      const message = await utilisateurService.sendMessageToPerson(req.session.passport.user.id, req.params.contactId, req.body);
+      const messageData = prepareMessageData(req);
+      const message = await utilisateurService.sendMessageToPerson(req.session.passport.user.id, req.params.contactId, messageData);
       res.status(201).json(message);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -152,7 +170,8 @@ module.exports = {
 
   async envoyerMessageAGroupe(req, res) {
     try {
-      const message = await utilisateurService.sendMessageToGroup(req.session.passport.user.id, req.params.groupeId, req.body);
+      const messageData = prepareMessageData(req);
+      const message = await utilisateurService.sendMessageToGroup(req.session.passport.user.id, req.params.groupeId, messageData);
       res.status(201).json(message);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -179,11 +198,20 @@ module.exports = {
   },
 
   async changePhoto(req, res) {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).send('Aucun fichier uploadé');
+    }
+  
+    if (file.error) {
+      console.error(file.error);
+      return res.status(400).send(file.error.message);
+    }
     const newPhotoUrl = req.file.path;
+    const photo=`${req.protocol}://mahm.tempest.dov:3000/${newPhotoUrl}`
     const mimetype = req.file.mimetype; 
-
     try {
-      const result = await utilisateurService.changePhoto(req.session.passport.user.id, newPhotoUrl,mimetype);
+      const result = await utilisateurService.changePhoto(req.session.passport.user.id, photo,mimetype);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });

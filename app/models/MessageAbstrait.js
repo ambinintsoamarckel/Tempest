@@ -4,7 +4,7 @@ const messageAbstraitSchema = new mongoose.Schema({
   contenu: {
     type: {
       type: String,
-      enum: ['texte', 'image', 'fichier'],
+      enum: ['texte', 'image', 'fichier', 'audio', 'video'],
       required: true
     },
     texte: {
@@ -17,6 +17,12 @@ const messageAbstraitSchema = new mongoose.Schema({
     },
     fichier: {
       type: String // URL ou chemin d'accès au fichier
+    },
+    audio: {
+      type: String // URL ou chemin d'accès au fichier audio
+    },
+    video: {
+      type: String // URL ou chemin d'accès au fichier vidéo
     }
   },
   expediteur: {
