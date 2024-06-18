@@ -8,6 +8,9 @@ const profilePhotoStorage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
+  },
+  metadata: (req, file, cb) => {
+    cb(null, { mimetype: file.mimetype });
   }
 });
 

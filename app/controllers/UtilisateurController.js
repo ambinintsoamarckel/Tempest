@@ -4,22 +4,6 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 
-function getMimeType(imageData) {
-  // Option 1: Leverage a reliable MIME type detection library
-  // (Recommended approach for accuracy and flexibility)
-  const mime = require('mime-types'); // Example library
-//  return mime.lookup(imageData);
-
-  // Option 2: Basic MIME type detection based on header bytes (less reliable)
-  // Use with caution as it might not always be accurate
-  const header = imageData.slice(0, 4).toString('hex');
-  switch (header) {
-    case '89504e47': return 'image/png';
-    case 'ffd8ffe0': return 'image/jpeg';
-    case '47494638': return 'image/gif';
-    default: return 'application/octet-stream'; // Unknown type, send as binary
-  }
-}
 module.exports = {
   async creerUtilisateur(req, res) {
     try {
@@ -44,38 +28,11 @@ module.exports = {
       if (!utilisateur) {
         return res.status(404).json({ message: 'Utilisateur non trouvé' });
       }
-
-      // Préparez les données utilisateur
-      const utilisateurData = utilisateur.toObject();
-      const form = new FormData();
-
-      // Ajoutez les propriétés de l'utilisateur au form-data
-/*       for (const key in utilisateurData) {
-        if (Object.prototype.hasOwnProperty.call(utilisateurData, key)) {
-          form.append(key, utilisateurData[key].toString());
-        }
-      }
- */
-      // Ajoutez la photo de profil au form-data
       const photoPath = utilisateur.photo;
       const imageData = fs.readFileSync(photoPath);
-      const mimeType = getMimeType(imageData);
-       // Call a function to determine MIME type
-      console.log(mimeType);
-      // Set the Content-Type header with the determined MIME type
+      const mimeType = utilisateur.mimetype;
       res.writeHead(200, { 'Content-Type': mimeType });
-
       res.end(imageData); // Chemin de la photo stocké dans la BDD
-/*       if (photoPath && fs.existsSync(photoPath)) {
-        form.append('photo', fs.readFileSync(photoPath), {
-          filename: path.basename(photoPath)// ou 'image/png' selon le type de votre image
-        });
-      } else {
-        form.append('photo', '');
-      }
-
-      // Envoyez la réponse avec form-data
-      form.pipe(res); */
     } catch (error) {
       console.error(error);
       res.status(400).json({ message: error });
@@ -91,31 +48,24 @@ module.exports = {
         return res.status(404).json({ message: 'Utilisateur non trouvé' });
       }
 
-      // Préparez les données utilisateur
+      // Récupération des informations utilisateur
       const utilisateurData = utilisateur.toObject();
-      const form = new FormData();
 
-      // Ajoutez les propriétés de l'utilisateur au form-data
-/*       for (const key in utilisateurData) {
-        if (Object.prototype.hasOwnProperty.call(utilisateurData, key)) {
-          form.append(key, utilisateurData[key].toString());
-        }
-      } */
+      // Chemin de la photo de profil
+      const photoPath = utilisateur.photo;
 
-      // Ajoutez la photo de profil au form-data
-      const photoPath = utilisateur.photo; // Chemin de la photo stocké dans la BDD
-      if (photoPath && fs.existsSync(photoPath)) {
-        form.append('photo', fs.createReadStream(photoPath), {
-          filename: path.basename(photoPath)
-        });
-      } else {
-        form.append('photo', '');
-      }
+      // Créer une URL pour la photo de profil
+      const photoUrl = photoPath ? `${req.protocol}://192.168.43.20:3000/uploads/profilePhotos/${path.basename(photoPath)}` : null;
 
-      // Envoyez la réponse avec form-data
-      form.pipe(res);
+      // Ajouter l'URL de la photo de profil aux données utilisateur
+      const responseData = {
+        ...utilisateurData,
+        photoUrl: photoUrl
+      };
+
+      res.status(200).json(responseData);
     } catch (error) {
-        console.error(error);
+      console.error(error);
       res.status(400).json({ message: error.message });
     }
   },
@@ -229,10 +179,11 @@ module.exports = {
   },
 
   async changePhoto(req, res) {
-    const newPhotoUrl = req.file.path; // Obtenir le chemin du fichier téléchargé
+    const newPhotoUrl = req.file.path;
+    const mimetype = req.file.mimetype; 
 
     try {
-      const result = await utilisateurService.changePhoto(req.session.passport.user.id, newPhotoUrl);
+      const result = await utilisateurService.changePhoto(req.session.passport.user.id, newPhotoUrl,mimetype);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });

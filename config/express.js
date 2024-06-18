@@ -9,6 +9,8 @@ const bodyParser= require('body-parser');
 const cors =require('cors');
 const updatePresence=require('./tasks')
 const cron=require('node-cron');
+const path = require('path');
+
 
 const generateSecret = () => {
   //return crypto.randomBytes(32).toString('hex');
@@ -23,7 +25,9 @@ var corsOptions = {
 app.use(cors(corsOptions)); 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-
+const staticFilesPath = path.join(__dirname, '../uploads'); // Chemin absolu vers le répertoire des fichiers statiques
+app.use('/uploads', express.static(staticFilesPath));
+console.log('Static files served from:', staticFilesPath);
 // Configuration de la session
 const sessionConfig = {
   secret: secret,

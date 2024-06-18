@@ -183,13 +183,13 @@ class UtilisateurService {
     }
   }
 
-  async changePhoto(userId, newPhotoUrl) {
+  async changePhoto(userId, newPhotoUrl,mimetype) {
     try {
       const user = await Utilisateur.findById(userId);
       if (!user) {
         throw new Error('Utilisateur non trouvé.');
       }
-      await user.changePhoto(newPhotoUrl);
+      await user.changePhoto(newPhotoUrl,mimetype);
       return { message: 'Photo de profil mise à jour avec succès.' };
     } catch (error) {
       throw error;

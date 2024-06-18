@@ -70,6 +70,11 @@ const utilisateurSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  mimetype: {
+    type: String,
+    default: null
+  
+  },
   presence: {
     type: String,
     enum: ['en ligne', 'inactif'],
@@ -432,11 +437,12 @@ utilisateurSchema.methods.changePassword = async function(oldPassword, newPasswo
   }
 };
 
-  utilisateurSchema.methods.changePhoto = async function(newPhotoUrl) {
+  utilisateurSchema.methods.changePhoto = async function(newPhotoUrl,mimetype) {
     try {
       await this.UpdatePresence();
       // Mettre à jour le champ photo avec la nouvelle URL de la photo
       this.photo = newPhotoUrl;
+      this.mimetype=mimetype;
 
       // Enregistrer les modifications
       await this.save();
