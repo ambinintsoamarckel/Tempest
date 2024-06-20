@@ -204,7 +204,7 @@ class UtilisateurService {
         throw new Error('Utilisateur non trouvé.');
       }
       await user.changePassword(oldPassword, newPassword);
-      return { message: 'Mot de passe changé avec succès.' };
+      return user;
     } catch (error) {
       throw error;
     }
@@ -217,7 +217,7 @@ class UtilisateurService {
         throw new Error('Utilisateur non trouvé.');
       }
       await user.changePhoto(newPhotoUrl,mimetype);
-      return { message: 'Photo de profil mise à jour avec succès.' };
+      return user;
     } catch (error) {
       throw error;
     }

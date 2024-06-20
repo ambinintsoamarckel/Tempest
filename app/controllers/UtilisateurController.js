@@ -106,8 +106,20 @@ module.exports = {
 
   async modifierMonCompte(req, res) {
     try {
-      const utilisateur = await utilisateurService.updateUtilisateur(req.session.passport.user.id, req.body);
-      res.status(200).json(utilisateur);
+      const result = await utilisateurService.updateUtilisateur(req.session.passport.user.id, req.body);
+      req.logout(async (err) => {
+        if (err) {
+            return res.status(500).json({ message: 'Erreur lors de la déconnexion après le changement de mot de l\'utilisateur.' });
+        }
+
+        // Reconnecter l'utilisateur
+        req.login(result, (err) => {
+            if (err) {
+                return res.status(500).json({ message: 'Erreur lors de la reconnexion après le changement de l\'utilisateur.' });
+            }
+            return res.status(200).json({ message: 'Utilisateur changé avec succès', user: result });
+        });
+    });
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
@@ -211,12 +223,26 @@ module.exports = {
     const { oldPassword, newPassword } = req.body;
 
     try {
-      const result = await utilisateurService.changePassword(req.session.passport.user.id, oldPassword, newPassword);
-      res.status(200).json(result);
+        const userId = req.session.passport.user.id;
+        const result = await utilisateurService.changePassword(userId, oldPassword, newPassword);
+        
+        req.logout(async (err) => {
+            if (err) {
+                return res.status(500).json({ message: 'Erreur lors de la déconnexion après le changement de mot de passe.' });
+            }
+
+            // Reconnecter l'utilisateur
+            req.login(result, (err) => {
+                if (err) {
+                    return res.status(500).json({ message: 'Erreur lors de la reconnexion après le changement de mot de passe.' });
+                }
+                return res.status(200).json({ message: 'Mot de passe changé avec succès', user: req.user });
+            });
+        });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+        return res.status(400).json({ message: error.message });
     }
-  },
+},
 
   async changePhoto(req, res) {
     const file = req.file;
@@ -233,7 +259,19 @@ module.exports = {
     const mimetype = req.file.mimetype; 
     try {
       const result = await utilisateurService.changePhoto(req.session.passport.user.id, photo, mimetype);
-      res.status(200).json(result);
+      req.logout(async (err) => {
+        if (err) {
+            return res.status(500).json({ message: 'Erreur lors de la déconnexion après le changement de mot de pdp.' });
+        }
+
+        // Reconnecter l'utilisateur
+        req.login(result, (err) => {
+            if (err) {
+                return res.status(500).json({ message: 'Erreur lors de la reconnexion après le changement de mot de pdp.' });
+            }
+            return res.status(200).json({ message: 'PdP changé avec succès', user: result});
+        });
+    });
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
