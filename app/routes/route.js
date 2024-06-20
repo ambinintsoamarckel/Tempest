@@ -5,10 +5,12 @@ const groupeController = require('../controllers/GroupeController');
 const storyController = require('../controllers/StoryController');
 const passport = require('passport');
 const multer = require('multer');
-const { uploadProfilePhoto,uploadMessageFile,uploadGroupPhoto} = require('../../config/multerConfig');
+const { uploadProfilePhoto, uploadMessageFile, uploadGroupPhoto } = require('../../config/multerConfig');
 
 // Middleware pour les routes protégées
 const protectedRoutes = require('./protectedRoutes');
+const UtilisateurService = require('../services/UtilisateurService');
+const UtilisateurController = require('../controllers/UtilisateurController');
 
 module.exports = (app) => {
   // Routes pour l'utilisateur
@@ -17,7 +19,7 @@ module.exports = (app) => {
     .get(utilisateurController.VoirTousUtilisateur);
 
   app.route('/utilisateurs/:id')
-    .get( utilisateurController.recupererUtilisateur)
+    .get(utilisateurController.recupererUtilisateur)
     .put(protectedRoutes, utilisateurController.modifierUtilisateur)
     .delete(protectedRoutes, utilisateurController.supprimerUtilisateur);
 
@@ -31,10 +33,11 @@ module.exports = (app) => {
     .put(protectedRoutes, utilisateurController.changePassword);
 
   app.route('/me/changePhoto')
-    .put(protectedRoutes, uploadProfilePhoto.single('photo'),utilisateurController.changePhoto);
+    .put(protectedRoutes, uploadProfilePhoto.single('photo'), utilisateurController.changePhoto);
 
   app.route('/me/quitGroup/:groupId')
     .post(protectedRoutes, utilisateurController.quitGroup);
+
   app.route('/me/createGroup')
     .post(protectedRoutes, utilisateurController.createGroup);
 
@@ -59,35 +62,40 @@ module.exports = (app) => {
       });
     }, utilisateurController.envoyerMessageAGroupe)
     .get(protectedRoutes, utilisateurController.recupererDiscussionAvecGroupe);
+  app.route('/messages/personne/:contactId/:messageId')
+    .post(protectedRoutes, utilisateurController.transfererMessageAPersonne)
+  app.route('/messages/groupe/:groupeId/:messageId')
+    .post(protectedRoutes, utilisateurController.transfererMessageAGroupe)
   // Route pour récupérer la session de l'utilisateur
   app.route('/session')
     .get(protectedRoutes, utilisateurController.recupererSession);
-
-  // Routes pour les messages
-  app.route('/messages')
-    .post(protectedRoutes, messageController.creerMessage);
-
   app.route('/messages/:id')
     .get(protectedRoutes, messageController.recupererMessage)
     .put(protectedRoutes, messageController.modifierMessage)
-    .delete(protectedRoutes, messageController.supprimerMessage);
-
+    .delete(protectedRoutes,UtilisateurController.supprimerMessage);
   // Routes pour les groupes
   app.route('/groupes')
-    .post(protectedRoutes,utilisateurController.createGroup)
+    .post(protectedRoutes, utilisateurController.createGroup)
     .get(protectedRoutes, groupeController.getAllGroupes);
 
   app.route('/groupes/:id')
     .get(protectedRoutes, groupeController.getGroupe)
-    .put(protectedRoutes, groupeController.updateGroupe)
-    .delete(protectedRoutes, groupeController.deleteGroupe);
+    .put(protectedRoutes, utilisateurController.updategroup)
+    .delete(protectedRoutes, utilisateurController.removeGroup);
 
   app.route('/groupes/:id/membres/:utilisateurId')
-    .post(protectedRoutes, groupeController.addMember)
-    .delete(protectedRoutes, groupeController.removeMember);
+    .post(protectedRoutes, utilisateurController.addMember)
+    .delete(protectedRoutes, utilisateurController.removeMember);
 
   app.route('/groupes/:id/changePhoto')
-    .put(protectedRoutes, groupeController.changeGroupPhoto);
+    .put(protectedRoutes, (req, res, next) => {
+      uploadGroupPhoto.single('photo')(req, res, function (err) {
+        if (err instanceof multer.MulterError || err) {
+          return res.status(400).json({ message: err.message });
+        }
+        next();
+      });
+    },utilisateurController.changePhotoGroup);
 
   // Routes pour les stories
   app.route('/stories')
@@ -100,7 +108,7 @@ module.exports = (app) => {
   // Route pour récupérer les dernières conversations
   app.route('/dernierConversation')
     .get(protectedRoutes, utilisateurController.recupererContactsEtMessages);
-  
+
   // Middleware de passport
   app.use(passport.initialize());
 };

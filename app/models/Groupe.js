@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const path=require('path');
+const fs=require('fs');
 
 const blockRelationArraysUpdates = async function(next) {
   const update = this.getUpdate();
@@ -17,40 +19,6 @@ const blockRelationArraysUpdates = async function(next) {
 console.log('Mise à jour :', update);
 
   next();
-};
-const handleGroupDeletion = async function(next) {
-  try {
-    const groupe = await this.model.findOne(this.getQuery());
-
-    if (!groupe) {
-      throw new Error('Groupe non trouvé');
-    }
-
-    // Retirer le groupe de la liste des groupes de chaque utilisateur membre
-    await mongoose.model('Utilisateur').updateMany(
-      { _id: { $in: groupe.membres } },
-      { $pull: { groupes: groupe._id } }
-    );
-
-    // Retirer les messages de groupe des collections des utilisateurs
-    await mongoose.model('Utilisateur').updateMany(
-      { _id: { $in: groupe.membres } },
-      { 
-        $pull: { 
-          messagesGroupesEnvoyes: { $in: groupe.messages },
-          messagesGroupesRecus: { $in: groupe.messages }
-        }
-      }
-    );
-
-    // Supprimer les messages de groupe
-    await mongoose.model('MessageGroupe').deleteMany({ _id: { $in: groupe.messages } });
-
-    next();
-  } catch (error) {
-    console.error('Erreur lors de la suppression du groupe :', error);
-    next(error);
-  }
 };
 const groupeSchema = new mongoose.Schema({
   nom: {
@@ -159,6 +127,17 @@ groupeSchema.methods.supprimerMembre = async function(utilisateurId) {
 groupeSchema.methods.changePhoto = async function(newPhotoUrl) {
   try {
     // Mettre à jour le champ photo avec la nouvelle URL de la photo
+    if (this.photo) {
+      const oldPhotoUrl = this.photo;
+      const relativeFilePath = oldPhotoUrl.split('3000/')[1];
+      const filePath = path.join(__dirname, '../../', relativeFilePath);
+
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
+        }
+      });
+    }
     this.photo = newPhotoUrl;
 
     // Enregistrer les modifications
@@ -169,7 +148,45 @@ groupeSchema.methods.changePhoto = async function(newPhotoUrl) {
     throw error;
   }
 };
-groupeSchema.pre('findOneAndDelete', handleGroupDeletion);
+groupeSchema.post('remove',  async function(groupe) {
+  try {
+ 
+    if (groupe.photo) {
+      const oldPhotoUrl = groupe.photo;
+      const relativeFilePath = oldPhotoUrl.split('3000/')[1];
+      const filePath = path.join(__dirname, '../../', relativeFilePath);
+
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
+        }
+      });
+    }
+    // Retirer le groupe de la liste des groupes de chaque utilisateur membre
+    await mongoose.model('Utilisateur').updateMany(
+      { _id: { $in: groupe.membres } },
+      { $pull: { groupes: groupe._id } }
+    );
+
+    // Retirer les messages de groupe des collections des utilisateurs
+    await mongoose.model('Utilisateur').updateMany(
+      { _id: { $in: groupe.membres } },
+      { 
+        $pull: { 
+          messagesGroupesEnvoyes: { $in: groupe.messages },
+          messagesGroupesRecus: { $in: groupe.messages }
+        }
+      }
+    );
+
+    // Supprimer les messages de groupe
+    await mongoose.model('MessageGroupe').deleteMany({ _id: { $in: groupe.messages } });
+
+  } catch (error) {
+    console.error('Erreur lors de la suppression du groupe :', error);
+    next(error);
+  }
+});
 
 
 module.exports = mongoose.model('Groupe', groupeSchema);

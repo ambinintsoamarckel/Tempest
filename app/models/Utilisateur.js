@@ -1,12 +1,10 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+const path=require('path');
 const fs=require('fs');
-const { formatPhotoPath } = require('../../config/utils');
-
 // Middleware pour bloquer les modifications des tableaux relationnels
 const blockRelationArraysUpdates = async function(next) {
   const update = this.getUpdate();
-  const blockedKeys = ['groupes', 'stories', 'messagesPrivesEnvoyes', 'messagesPrivesRecus', 'messagesGroupesEnvoyes', 'messagesGroupesRecus'];
   const immutableKeys = ['_id', 'password','groupes', 'stories', 'messagesPrivesEnvoyes', 'messagesPrivesRecus', 'messagesGroupesEnvoyes', 'messagesGroupesRecus','photo'];
 
   // Enlever les champs immuables de l'objet de mise à jour
@@ -20,26 +18,6 @@ const blockRelationArraysUpdates = async function(next) {
   });
   next();
 };
-/* const addPhotoToUtilisateur = async (utilisateurObject, req, next) => {
-  const photoPath = utilisateurObject.photo; // URL de la photo de profil
-
-  if (photoPath) {
-    try {
-      const photoBuffer = await fs.promises.readFile(photoPath);
-      utilisateurObject.photo = photoBuffer.toString('base64'); // Convertir le tampon en base64
-    } catch (error) {
-      // Gérer l'erreur de lecture du fichier photo
-      console.error(`Erreur lors de la lecture de la photo de l'utilisateur ${utilisateurObject._id} :`, error);
-      utilisateurObject.photo = null; // Définir la photo à null si une erreur se produit
-    }
-  } else {
-    // Cas où la propriété photo est absente ou null
-    utilisateurObject.photo = null; // Définir la photo à null par défaut
-  }
-
-  next();
-}; */
-
 const utilisateurSchema = new mongoose.Schema({
   nom: {
     type: String,
@@ -105,42 +83,27 @@ const utilisateurSchema = new mongoose.Schema({
     ref: 'MessageGroupe'
   }]
 }, { timestamps: true });
-// Méthode d'instance pour ajouter un utilisateur à un groupe
-utilisateurSchema.methods.ajouterAuGroupe = async function(groupeId, utilisateurId) {
-  try {
-    const Groupe = mongoose.model('Groupe');
-    const groupe = await Groupe.findById(groupeId);
-
-    if (!groupe) {
-      throw new Error('Groupe non trouvé');
-    }
-
-    // Vérifier si l'utilisateur est membre du groupe
-    if (!groupe.membres.includes(this._id)) {
-      throw new Error('Vous devez être membre du groupe pour ajouter un utilisateur.');
-    }
-
-    // Appeler la méthode du groupe pour ajouter le membre
-    await groupe.ajouterMembre(utilisateurId);
-
-    // Ajouter le groupe à la liste des groupes de l'utilisateur
-    const utilisateur = await mongoose.model('Utilisateur').findById(utilisateurId);
-    if (!utilisateur.groupes.includes(groupeId)) {
-      utilisateur.groupes.push(groupeId);
-      await utilisateur.save();
-    }
-
-    return 'Utilisateur ajouté au groupe avec succès.';
-  } catch (error) {
-    console.error('Erreur lors de l\'ajout de l\'utilisateur au groupe :', error);
-    throw error;
-  }
-};
-
-
 // Enregistrement du middleware au niveau du modèle
 utilisateurSchema.pre('findOneAndUpdate', blockRelationArraysUpdates);
-/* utilisateurSchema.post('toJSON', addPhotoToUtilisateur); */
+utilisateurSchema.post('remove',  async function(utilisateur) {
+  try {
+ 
+    if (utilisateur.photo) {
+      const oldPhotoUrl = utilisateur.photo;
+      const relativeFilePath = oldPhotoUrl.split('3000/')[1];
+      const filePath = path.join(__dirname, '../../', relativeFilePath);
+
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Erreur lors de la suppression du l\'utilisateur :', error);
+    next(error);
+  }
+});
 utilisateurSchema.methods.setPassword = function() {
   this.salt = crypto.randomBytes(16).toString('hex');
   this.password = crypto.pbkdf2Sync(this.password, this.salt, 310000, 32, 'sha256').toString('hex');
@@ -323,6 +286,7 @@ utilisateurSchema.methods.deleteStory = async function(storyId) {
   try {
     await this.UpdatePresence();
     // Vérifier si l'utilisateur a créé la story
+    const Story= mongoose.model('Story');
     const index = this.stories.indexOf(storyId);
     if (index === -1) {
       throw new Error('L\'utilisateur n\'a pas créé cette story.');
@@ -537,11 +501,6 @@ utilisateurSchema.methods.createGroup = async function(nomGroupe, photoGroupe, m
 
     // Sauvegarder le nouveau groupe
     await nouveauGroupe.save();
-
-    // Ajouter l'ID du nouveau groupe au tableau groupes de l'utilisateur
-/*     this.groupes.push(nouveauGroupe._id);
-    await this.save(); */
-
     return 'Groupe créé avec succès.';
   } catch (error) {
     console.error('Erreur lors de la création du groupe :', error);
@@ -574,34 +533,31 @@ utilisateurSchema.methods.setInactif = async function() {
   }
 };
 
-utilisateurSchema.methods.deleteMessage = async function(messageId, messageType) {
+utilisateurSchema.methods.deleteMessage = async function(messageId) {
   try {
+   
     await this.UpdatePresence();
-    const MessagePrive = mongoose.model('MessagePrive');
-    const MessageGroupe = mongoose.model('MessageGroupe');
+    const MessageAbstrait = mongoose.model('MessageAbstrait');
+    const message = await MessageAbstrait.findById(messageId);
 
-    let message;
+    if (!message) {
+      throw new Error('Le message spécifié n\'existe pas.');
+    }
+
+    const discriminatorKey = message.type;
+    
+
     let isAuthorized = false;
-    if (messageType === 'prive') {
-      message = await MessagePrive.findById(messageId).populate('expediteur destinataire');
-      if (!message) {
-        throw new Error('Le message privé spécifié n\'existe pas.');
-      }
+    let groupe;
 
-      // Vérifier si l'utilisateur est l'expéditeur ou le destinataire du message privé
+    if (discriminatorKey === 'MessagePrive') {
+      await message.populate('expediteur destinataire');
       if (message.expediteur.equals(this._id) || message.destinataire.equals(this._id)) {
         isAuthorized = true;
       }
-    } else if (messageType === 'groupe') {
-      message = await MessageGroupe.findById(messageId).populate('expediteur groupe');
-      if (!message) {
-        throw new Error('Le message de groupe spécifié n\'existe pas.');
-      }
-
-      const Groupe = mongoose.model('Groupe');
-      const groupe = await Groupe.findById(message.groupe);
-
-      // Vérifier si l'utilisateur est l'expéditeur du message ou le créateur du groupe
+    } else if (discriminatorKey === 'MessageGroupe') {
+      await message.populate('expediteur groupe');
+      groupe = await mongoose.model('Groupe').findById(message.groupe);
       if (message.expediteur.equals(this._id) || groupe.createur.equals(this._id)) {
         isAuthorized = true;
       }
@@ -613,30 +569,22 @@ utilisateurSchema.methods.deleteMessage = async function(messageId, messageType)
       throw new Error('Vous n\'êtes pas autorisé à supprimer ce message.');
     }
 
-    // Supprimer les fichiers associés si nécessaire
-    if (message.contenu && ['image', 'audio', 'video', 'fichier'].includes(message.contenu.type)) {
-      const filePath = path.join(__dirname, '../../', message.contenu[message.contenu.type].split('3000/')[1]);
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
-        }
-      });
-    }
 
     // Supprimer le message de la base de données
-    await message.remove();
+    await MessageAbstrait.deleteOne({ _id: messageId });
 
     // Les références dans les collections appropriées seront mises à jour par les middlewares
-
     return 'Message supprimé avec succès.';
   } catch (error) {
     console.error('Erreur lors de la suppression du message :', error);
     throw error;
   }
 };
+
 // Méthode d'instance pour ajouter un utilisateur à un groupe
 utilisateurSchema.methods.ajouterAuGroupe = async function(groupeId, utilisateurId) {
   try {
+    await this.UpdatePresence();
     const Groupe = mongoose.model('Groupe');
     const groupe = await Groupe.findById(groupeId);
 
@@ -648,17 +596,7 @@ utilisateurSchema.methods.ajouterAuGroupe = async function(groupeId, utilisateur
     if (!groupe.membres.includes(this._id)) {
       throw new Error('Vous devez être membre du groupe pour ajouter un utilisateur.');
     }
-
-    // Appeler la méthode du groupe pour ajouter le membre
     await groupe.ajouterMembre(utilisateurId);
-
-    // Ajouter le groupe à la liste des groupes de l'utilisateur
-    const utilisateur = await mongoose.model('Utilisateur').findById(utilisateurId);
-    if (!utilisateur.groupes.includes(groupeId)) {
-      utilisateur.groupes.push(groupeId);
-      await utilisateur.save();
-    }
-
     return 'Utilisateur ajouté au groupe avec succès.';
   } catch (error) {
     console.error('Erreur lors de l\'ajout de l\'utilisateur au groupe :', error);
@@ -669,6 +607,7 @@ utilisateurSchema.methods.ajouterAuGroupe = async function(groupeId, utilisateur
 // Méthode d'instance pour supprimer un utilisateur d'un groupe
 utilisateurSchema.methods.supprimerDuGroupe = async function(groupeId, utilisateurId) {
   try {
+    await this.UpdatePresence();
     const Groupe = mongoose.model('Groupe');
     const groupe = await Groupe.findById(groupeId);
 
@@ -680,15 +619,7 @@ utilisateurSchema.methods.supprimerDuGroupe = async function(groupeId, utilisate
     if (!groupe.createur.equals(this._id)) {
       throw new Error('Vous devez être le créateur du groupe pour supprimer un utilisateur.');
     }
-
-    // Appeler la méthode du groupe pour supprimer le membre
     await groupe.supprimerMembre(utilisateurId);
-
-    // Retirer le groupe de la liste des groupes de l'utilisateur
-    const utilisateur = await mongoose.model('Utilisateur').findById(utilisateurId);
-    utilisateur.groupes.pull(groupeId);
-    await utilisateur.save();
-
     return 'Utilisateur supprimé du groupe avec succès.';
   } catch (error) {
     console.error('Erreur lors de la suppression de l\'utilisateur du groupe :', error);
@@ -699,6 +630,7 @@ utilisateurSchema.methods.supprimerDuGroupe = async function(groupeId, utilisate
 // Méthode d'instance pour changer la photo du groupe
 utilisateurSchema.methods.changeGroupPhoto = async function(groupeId, newPhotoUrl) {
   try {
+    await this.UpdatePresence();
     const Groupe = mongoose.model('Groupe');
     const groupe = await Groupe.findById(groupeId);
 
@@ -714,7 +646,7 @@ utilisateurSchema.methods.changeGroupPhoto = async function(groupeId, newPhotoUr
     // Appeler la méthode du groupe pour changer la photo
     await groupe.changePhoto(newPhotoUrl);
 
-    return 'Photo du groupe mise à jour avec succès.';
+    return groupe;
   } catch (error) {
     console.error('Erreur lors du changement de la photo du groupe :', error);
     throw error;
@@ -724,6 +656,7 @@ utilisateurSchema.methods.changeGroupPhoto = async function(groupeId, newPhotoUr
 // Méthode d'instance pour supprimer un groupe
 utilisateurSchema.methods.supprimerGroupe = async function(groupeId) {
   try {
+    await this.UpdatePresence();
     const Groupe = mongoose.model('Groupe');
     const groupe = await Groupe.findById(groupeId);
 
@@ -745,8 +678,111 @@ utilisateurSchema.methods.supprimerGroupe = async function(groupeId) {
     throw error;
   }
 };
+utilisateurSchema.methods.transferToPerson = async function(originalMessageId, destinataireId) {
+  try {
+    await this.UpdatePresence(); // Assure que la présence de l'utilisateur est mise à jour
 
+    // Trouve le message original par son ID
+    const originalMessage = await mongoose.model('MessageAbstrait').findById(originalMessageId);
+    if (!originalMessage) {
+      throw new Error('Le message original spécifié n\'existe pas.');
+    }
 
+    const discriminatorKey = originalMessage.__t;
 
+    let isAuthorized = false;
+
+    if (discriminatorKey === 'MessagePrive') {
+      await originalMessage.populate('expediteur destinataire');
+      if (originalMessage.expediteur.equals(this._id) || originalMessage.destinataire.equals(this._id)) {
+        isAuthorized = true;
+      }
+    } else if (discriminatorKey === 'MessageGroupe') {
+      await originalMessage.populate('expediteur groupe');
+      const groupe = await mongoose.model('Groupe').findById(originalMessage.groupe);
+      if (originalMessage.expediteur.equals(this._id) || groupe.createur.equals(this._id)) {
+        isAuthorized = true;
+      }
+    } else {
+      throw new Error('Type de message invalide.');
+    }
+
+    if (!isAuthorized) {
+      throw new Error('Vous n\'êtes pas autorisé à transférer ce message.');
+    }
+
+    // Prépare le contenu du message à transférer
+    const contenu = {
+      type: originalMessage.type,
+      contenu: originalMessage.contenu
+    };
+
+    // Envoie le message à la personne spécifiée et récupère le message transféré
+    const transferredMessage = await this.sendMessageToPerson(destinataireId, contenu);
+    return transferredMessage;
+  } catch (error) {
+    console.error('Erreur lors du transfert du message à la personne :', error);
+    throw error;
+  }
+};
+utilisateurSchema.methods.transferToGroup = async function(originalMessageId, groupeId) {
+  try {
+    await this.UpdatePresence(); // Assure que la présence de l'utilisateur est mise à jour
+
+    // Trouve le groupe par son ID
+    const Groupe = mongoose.model('Groupe');
+    const groupe = await Groupe.findById(groupeId);
+    if (!groupe) {
+      throw new Error('Groupe non trouvé');
+    }
+
+    // Vérifie si l'utilisateur est membre du groupe
+    if (!groupe.membres.includes(this._id)) {
+      throw new Error('Vous devez être membre du groupe pour transférer le message.');
+    }
+
+    // Trouve le message original par son ID
+    const originalMessage = await mongoose.model('MessageAbstrait').findById(originalMessageId);
+    if (!originalMessage) {
+      throw new Error('Le message original spécifié n\'existe pas.');
+    }
+
+    // Prépare le contenu du message à transférer
+    const contenu = {
+      type: originalMessage.type,
+      contenu: originalMessage.contenu
+    };
+
+    // Envoie le message au groupe spécifié et récupère le message transféré
+    const transferredMessage = await this.sendMessageToGroup(groupeId, contenu);
+    return transferredMessage;
+  } catch (error) {
+    console.error('Erreur lors du transfert du message au groupe :', error);
+    throw error;
+  }
+};
+
+utilisateurSchema.methods.updateGroup = async function(groupeId, updateData) {
+  try {
+    await this.UpdatePresence();
+    const groupe = await Groupe.findById(groupeId);
+
+    if (!groupe) {
+      throw new Error('Groupe non trouvé');
+    }
+
+    // Vérifier si l'utilisateur est membre du groupe
+    if (!groupe.membres.includes(this._id)) {
+      throw new Error('Vous devez être membre du groupe pour changer la photo.');
+    }
+    // Mettre à jour les champs du groupe avec les données fournies
+    const updatedGroup = await Groupe.findOneAndUpdate(groupeId ,updateData,{ new: true });
+
+    return updatedGroup;
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du groupe :', error);
+    throw error;
+  }
+};
 
 module.exports = mongoose.model('Utilisateur', utilisateurSchema);

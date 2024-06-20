@@ -2,6 +2,7 @@ const utilisateurService = require('../services/UtilisateurService');
 const messageService = require('../services/MessageService');
 const fs = require('fs');
 const path = require('path');
+
 function prepareMessageData(req) {
   let messageData;
 
@@ -39,6 +40,7 @@ function prepareMessageData(req) {
 
   return messageData;
 }
+
 module.exports = {
   async creerUtilisateur(req, res) {
     try {
@@ -57,6 +59,7 @@ module.exports = {
       res.status(400).json({ message: error.message });
     }
   },
+
   async recupererUtilisateur(req, res) {
     try {
       const utilisateur = await utilisateurService.findUtilisateurById(req.params.id);
@@ -69,8 +72,6 @@ module.exports = {
       res.status(400).json({ message: error });
     }
   },
-  // Function to determine MIME type (consider using a reliable library)
-
 
   async recupererMonCompte(req, res) {
     try {
@@ -158,7 +159,6 @@ module.exports = {
   },
 
   async envoyerMessageAPersonne(req, res) {
-
     try {
       const messageData = prepareMessageData(req);
       const message = await utilisateurService.sendMessageToPerson(req.session.passport.user.id, req.params.contactId, messageData);
@@ -178,6 +178,26 @@ module.exports = {
     }
   },
 
+  async transfererMessageAPersonne(req, res) {
+    try {
+      const messageData = prepareMessageData(req);
+      const message = await utilisateurService.transferToPerson(req.session.passport.user.id, req.params.contactId, req.params.messageId);
+      res.status(201).json(message);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
+  async transfererMessageAGroupe(req, res) {
+    try {
+      const messageData = prepareMessageData(req);
+      const message = await utilisateurService.transferToGroup(req.session.passport.user.id, req.params.groupeId, req.params.messageId);
+      res.status(201).json(message);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
   async ajouterStory(req, res) {
     try {
       const story = await utilisateurService.addStory(req.session.passport.user.id, req.body);
@@ -186,6 +206,7 @@ module.exports = {
       res.status(400).json({ message: error.message });
     }
   },
+
   async changePassword(req, res) {
     const { oldPassword, newPassword } = req.body;
 
@@ -208,10 +229,10 @@ module.exports = {
       return res.status(400).send(file.error.message);
     }
     const newPhotoUrl = req.file.path;
-    const photo=`${req.protocol}://mahm.tempest.dov:3000/${newPhotoUrl}`
+    const photo = `${req.protocol}://mahm.tempest.dov:3000/${newPhotoUrl}`;
     const mimetype = req.file.mimetype; 
     try {
-      const result = await utilisateurService.changePhoto(req.session.passport.user.id, photo,mimetype);
+      const result = await utilisateurService.changePhoto(req.session.passport.user.id, photo, mimetype);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -228,11 +249,12 @@ module.exports = {
       res.status(400).json({ message: error.message });
     }
   },
+
   async createGroup(req, res) {
-    const { nom,photo,membres } = req.body;
+    const { nom, photo, membres } = req.body;
 
     try {
-      const result = await utilisateurService.createGroup(req.session.passport.user.id, nom,photo,membres);
+      const result = await utilisateurService.createGroup(req.session.passport.user.id, nom, photo, membres);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -246,5 +268,86 @@ module.exports = {
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
-  }
+  },
+
+  // New Functions
+  async removeGroup(req, res) {
+    const { groupId } = req.params;
+
+    try {
+      const result = await utilisateurService.removeGroup(req.session.passport.user.id, groupId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
+  async changePhotoGroup(req, res) {
+    const { groupId } = req.params;
+    const file = req.file;
+    if (!file) {
+      return res.status(400).send('Aucun fichier uploadé');
+    }
+  
+    if (file.error) {
+      console.error(file.error);
+      return res.status(400).send(file.error.message);
+    }
+    const newPhotoUrl = req.file.path;
+    const photo = `${req.protocol}://mahm.tempest.dov:3000/${newPhotoUrl}`;
+    const mimetype = req.file.mimetype; 
+
+    try {
+      const result = await utilisateurService.changePhotoGroup(req.session.passport.user.id, groupId,photo);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
+  async addMember(req, res) {
+    const { groupId } = req.params;
+    const { membre } = req.body;
+
+    try {
+      const result = await utilisateurService.addMember(req.session.passport.user.id, groupId, membre);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
+  async removeMember(req, res) {
+    const { groupId } = req.params;
+    const { membre } = req.body;
+
+    try {
+      const result = await utilisateurService.removeMember(req.session.passport.user.id, groupId, membre);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+  async updategroup(req, res) {
+    const { groupId } = req.params;
+    const { data } = req.body;
+
+    try {
+      const result = await utilisateurService.updateGroup(req.session.passport.user.id, groupId, data);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
+  async supprimerMessage(req, res) {
+    try {
+      await utilisateurService.removeMessage(req.session.passport.user.id, req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+  
+
 };

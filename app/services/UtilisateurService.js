@@ -142,6 +142,33 @@ class UtilisateurService {
       throw error;
     }
   }
+    // Envoyer un message privé
+    async transferToPerson(expediteurId, destinataireId, messageId) {
+      try {
+        const utilisateur = await Utilisateur.findById(expediteurId);
+        if (!utilisateur) {
+          throw new Error('Utilisateur non trouvé');
+        }
+        return await utilisateur.transferToPerson(destinataireId,messageId);
+      }  catch (error) {
+        console.error('Erreur lors de l\'envoi du message privé :', error);
+        throw error;
+      }
+    }
+  
+    // Envoyer un message de groupe
+    async transferToGroup(expediteurId, groupeId, messageId) {
+      try {
+        const utilisateur = await Utilisateur.findById(expediteurId);
+        if (!utilisateur) {
+          throw new Error('Utilisateur non trouvé');
+        }
+        return await utilisateur.transferToGroup(groupeId,messageId);
+      }   catch (error) {
+        console.error('Erreur lors de l\'envoi du message de groupe :', error);
+        throw error;
+      }
+    }
 
   async addStory(utilisateurId,contenu)
   {
@@ -208,6 +235,30 @@ class UtilisateurService {
       throw error;
     }
   }
+  async removeGroup(userId, groupId) {
+    try {
+      const user = await Utilisateur.findById(userId);
+      if (!user) {
+        throw new Error('Utilisateur non trouvé.');
+      }
+      const result = await user.supprimerGroupe(groupId);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+  async updateGroup(userId, groupId,data) {
+    try {
+      const user = await Utilisateur.findById(userId);
+      if (!user) {
+        throw new Error('Utilisateur non trouvé.');
+      }
+      const result = await user.updateGroup(groupId,data);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
 
   async createGroup(userId,nomGroupe, photoGroupe, membresIds) {
     try {
@@ -216,6 +267,55 @@ class UtilisateurService {
         throw new Error('Utilisateur non trouvé.');
       }
       const result = await user.createGroup(nomGroupe, photoGroupe, membresIds);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async changePhotoGroup(userId, groupId,photoPath) {
+    try {
+      const user = await Utilisateur.findById(userId);
+      if (!user) {
+        throw new Error('Utilisateur non trouvé.');
+      }
+      const result = await user.changePhotoGroup(groupId,photoPath);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+  async addMember(userId, groupId,membre) {
+    try {
+      const user = await Utilisateur.findById(userId);
+      if (!user) {
+        throw new Error('Utilisateur non trouvé.');
+      }
+      const result = await user.ajouterAuGroupe(groupId,membre);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+  async removeMember(userId, groupId,membre) {
+    try {
+      const user = await Utilisateur.findById(userId);
+      if (!user) {
+        throw new Error('Utilisateur non trouvé.');
+      }
+      const result = await user.supprimerDuGroupe(groupId,membre);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+  async removeMessage(userId, messageId) {
+    try {
+      const user = await Utilisateur.findById(userId);
+      if (!user) {
+        throw new Error('Utilisateur non trouvé.');
+      }
+      const result = await user.deleteMessage(messageId);
       return result;
     } catch (error) {
       throw error;

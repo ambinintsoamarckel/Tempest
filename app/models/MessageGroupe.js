@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const MessageAbstrait = mongoose.model('MessageAbstrait');
+const path=require('path');
+const fs=require('fs');
 
 const messageGroupeSchema = new mongoose.Schema({
   groupe: {
@@ -49,7 +51,16 @@ messageGroupeSchema.post('remove', async function(message) {
     const expediteur = await mongoose.model('Utilisateur').findById(message.expediteur);
     expediteur.messagesGroupesEnvoyes.pull(message._id);
     await expediteur.save();
-
+        // Supprimer les fichiers associés si nécessaire
+    if (message.contenu && ['image', 'audio', 'video', 'fichier'].includes(message.contenu.type)) {
+      const filePath = path.join(__dirname, '../../', message.contenu[message.contenu.type].split('3000/')[1]);
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
+        }
+      });
+    }
+    
     // Retirer le message des messages reçus de tous les membres du groupe sauf l'expéditeur
     const groupe = await mongoose.model('Groupe').findById(message.groupe);
     const membres = await mongoose.model('Utilisateur').find({ _id: { $in: groupe.membres } });

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const MessageAbstrait = require('./MessageAbstrait');
-
+const path=require('path');
+const fs=require('fs');
 
 const messagePriveSchema = new mongoose.Schema({
   destinataire: {
@@ -46,6 +47,16 @@ messagePriveSchema.post('remove', async function(message) {
     const expediteur = await mongoose.model('Utilisateur').findById(message.expediteur);
     expediteur.messagesPrivesEnvoyes.pull(message._id);
     await expediteur.save();
+        // Supprimer les fichiers associés si nécessaire
+    if (message.contenu && ['image', 'audio', 'video', 'fichier'].includes(message.contenu.type)) {
+      const filePath = path.join(__dirname, '../../', message.contenu[message.contenu.type].split('3000/')[1]);
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
+        }
+      });
+    }
+    
 
     // Retirer le message des messages reçus du destinataire
     const destinataire = await mongoose.model('Utilisateur').findById(message.destinataire);
