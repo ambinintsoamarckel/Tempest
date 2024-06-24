@@ -5,8 +5,15 @@ const crypto = require('crypto');
 const Utilisateur = require('../models/Utilisateur');
 const router = express.Router();
 const UtilisateurService= require('../services/UtilisateurService');
-
+const cookie = require('cookie'); // Assurez-vous d'avoir installé ce module
+const cookieSignature = require('cookie-signature');
 // Configurer Passport
+const generateSecret = () => {
+  return process.env.SESSION_SECRET || 'Mon-secret-qui-tue';
+};
+
+const secret = generateSecret();
+
 passport.use(new LocalStrategy(
   async function verify(username, password, cb) {
     try {
@@ -49,16 +56,39 @@ router.post('/login', (req, res, next) => {
   passport.authenticate('local', (err, user, info) => {
     if (err) { return next(err); }
     if (!user) { return res.status(401).json(info); }
-    req.logIn(user, (err) => {
+    req.logIn(user, async (err) => {
       if (err) { return next(err); }
 
       // Mettre à jour la présence à "en ligne" après une connexion réussie
       user.presence = 'en ligne';
-      user.save()
-        .then(() => res.status(200).json(req.user))
-        .catch(error => res.status(500).json({ message: 'Échec de la mise à jour de la présence' }));
-    });
-  })(req, res, next);
+      console.log('session :', req.sessionID); // Affiche l'identifiant de session
+
+      await user.save()
+        .then(() => {
+     // Génération manuelle du cookie `connect.sid` avec signature
+     const sessionID = req.sessionID;
+     const signedSessionID = 's:' + cookieSignature.sign(sessionID, secret);
+     const sessionCookie = cookie.serialize('connect.sid', signedSessionID, {
+       httpOnly: true, // Recommandé pour des raisons de sécurité
+       maxAge: 1000 * 60 * 60 * 24, // 1 jour
+       sameSite: 'None',
+       path: '/',
+       secure: false // Mettez ceci à `true` si vous utilisez HTTPS
+     });
+
+     console.log('cookie: ', sessionCookie); // Affiche le cookie de session
+
+     // Envoyer la réponse avec le cookie dans le corps
+     res.status(200).json({
+       user: req.user,
+       'Set-Cookie': sessionCookie
+     });
+   })
+   .catch((error) => {
+    console.error(error);
+    res.status(500).json({ message: 'Échec de la mise à jour de la présence' })});
+});
+})(req, res, next);
 });
 
 // Route pour le logout
