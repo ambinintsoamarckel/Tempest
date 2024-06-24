@@ -18,11 +18,7 @@ const generateSecret = () => {
 const secret = generateSecret();
 
 const corsOptions = {
-  origin: ['http://localhost:8200', 'http://127.0.0.1:8200'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Set-Cookie'], // Expose 'set-cookie' header to the client
+  origin: '*' // Expose 'set-cookie' header to the client
 };
 // Middleware pour transformer l'en-tête Authorization en cookie
 app.use((req, res, next) => {
