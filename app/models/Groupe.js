@@ -159,7 +159,7 @@ groupeSchema.methods.changePhoto = async function(newPhotoUrl) {
 };
 
 // Middleware to handle group deletion
-groupeSchema.post('remove', async function(groupe) {
+groupeSchema.pre('findByIdAndDelete', async function(groupe) {
   try {
     // Remove the photo file if it exists
     if (groupe.photo) {

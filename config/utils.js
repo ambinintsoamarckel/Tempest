@@ -18,7 +18,79 @@ const generateCookie = (sessionID) => {
   });
   return sessionCookie;
 };
+function prepareMessageData(req) {
+  let messageData;
+
+  if (req.file) {
+    const newFileUrl = req.file.path;
+    const fileUrl = `${req.protocol}://mahm.tempest.dov:3000/${newFileUrl}`;
+    let fileType;
+
+    if (req.file.mimetype.startsWith('image/')) {
+      fileType = 'image';
+    } else if (req.file.mimetype.startsWith('audio/')) {
+      fileType = 'audio';
+    } else if (req.file.mimetype.startsWith('video/')) {
+      fileType = 'video';
+    } else {
+      fileType = 'fichier';
+    }
+
+    messageData = {
+      contenu: {
+        type: fileType,
+        [fileType]: fileUrl
+      }
+    };
+  } else if (req.body.texte) {
+    messageData = {
+      contenu: {
+        type: 'texte',
+        texte: req.body.texte
+      }
+    };
+  } else {
+    throw new Error('Aucun contenu valide trouvé');
+  }
+
+  return messageData;
+};
+function prepareStoryData(req) {
+  let messageData;
+
+  if (req.file) {
+    const newFileUrl = req.file.path;
+    const fileUrl = `${req.protocol}://mahm.tempest.dov:3000/${newFileUrl}`;
+    let fileType;
+
+    if (req.file.mimetype.startsWith('image/')) {
+      fileType = 'image';
+    } else if (req.file.mimetype.startsWith('video/')) {
+      fileType = 'video';
+    } 
+    storyData= {
+      contenu: {
+        type: fileType,
+        [fileType]: fileUrl
+      }
+    };
+  } else if (req.body.texte) {
+    storyData = {
+      contenu: {
+        type: 'texte',
+        texte: req.body.texte
+      }
+    };
+  } else {
+    throw new Error('Aucun contenu valide trouvé');
+  }
+
+  return storyData;
+};
+
 module.exports = {
-  generateCookie
+  generateCookie,
+  prepareMessageData,
+  prepareStoryData
 
 };

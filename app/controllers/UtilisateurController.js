@@ -2,45 +2,8 @@ const utilisateurService = require('../services/UtilisateurService');
 const messageService = require('../services/MessageService');
 const fs = require('fs');
 const path = require('path');
-const {generateCookie}=require('../../config/utils');
+const {generateCookie, prepareMessageData,prepareStoryData}=require('../../config/utils');
 
-function prepareMessageData(req) {
-  let messageData;
-
-  if (req.file) {
-    const newFileUrl = req.file.path;
-    const fileUrl = `${req.protocol}://mahm.tempest.dov:3000/${newFileUrl}`;
-    let fileType;
-
-    if (req.file.mimetype.startsWith('image/')) {
-      fileType = 'image';
-    } else if (req.file.mimetype.startsWith('audio/')) {
-      fileType = 'audio';
-    } else if (req.file.mimetype.startsWith('video/')) {
-      fileType = 'video';
-    } else {
-      fileType = 'fichier';
-    }
-
-    messageData = {
-      contenu: {
-        type: fileType,
-        [fileType]: fileUrl
-      }
-    };
-  } else if (req.body.texte) {
-    messageData = {
-      contenu: {
-        type: 'texte',
-        texte: req.body.texte
-      }
-    };
-  } else {
-    throw new Error('Aucun contenu valide trouvé');
-  }
-
-  return messageData;
-}
 
 module.exports = {
   async creerUtilisateur(req, res) {
@@ -213,9 +176,11 @@ module.exports = {
 
   async ajouterStory(req, res) {
     try {
-      const story = await utilisateurService.addStory(req.session.passport.user.id, req.body);
+      const data = prepareStoryData(req);
+      const story = await utilisateurService.addStory(req.session.passport.user.id, data);
       res.status(201).json(story);
     } catch (error) {
+      console.error(error);
       res.status(400).json({ message: error.message });
     }
   },
@@ -304,8 +269,16 @@ module.exports = {
 
   async supprimerStory(req, res) {
     try {
-      await utilisateurService.deleteStory(req.session.passport.user.id, req.params.storyId);
+      await utilisateurService.deleteStory(req.session.passport.user.id, req.params.id);
       res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+  async voirStory(req, res) {
+    try {
+     const story= await utilisateurService.voirStory(req.session.passport.user.id, req.params.id);
+      res.status(200).json(story);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }

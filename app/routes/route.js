@@ -5,7 +5,7 @@ const groupeController = require('../controllers/GroupeController');
 const storyController = require('../controllers/StoryController');
 const passport = require('passport');
 const multer = require('multer');
-const { uploadProfilePhoto, uploadMessageFile, uploadGroupPhoto } = require('../../config/multerConfig');
+const { uploadProfilePhoto, uploadMessageFile, uploadGroupPhoto,uploadStoryFile } = require('../../config/multerConfig');
 
 // Middleware pour les routes protégées
 const protectedRoutes = require('./protectedRoutes');
@@ -40,7 +40,8 @@ module.exports = (app) => {
 
   app.route('/me/changePassword')
     .put(protectedRoutes, utilisateurController.changePassword);
-
+  app.route('/me/addStory')
+    .post(protectedRoutes,uploadStoryFile.single('file'),handleMulterErrors, utilisateurController.ajouterStory);
   app.route('/me/changePhoto')
     .put(protectedRoutes, uploadProfilePhoto.single('photo'), handleMulterErrors, utilisateurController.changePhoto);
 
@@ -90,8 +91,8 @@ module.exports = (app) => {
     .post(protectedRoutes, storyController.creerStory);
 
   app.route('/stories/:id')
-    .get(protectedRoutes, storyController.recupererStory)
-    .delete(protectedRoutes, storyController.supprimerStory);
+    .get(protectedRoutes, utilisateurController.voirStory)
+    .delete(protectedRoutes, utilisateurController.supprimerStory);
 
   // Route pour récupérer les dernières conversations
   app.route('/dernierConversation')

@@ -36,7 +36,18 @@ const filterVideoFile = (req, file, cb) => {
     cb(error, false);
   }
 };
-
+const filterStoryFile = (req, file, cb) => {
+  if (file.mimetype.startsWith('video/')) {
+    cb(null, true);
+  }
+  else if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    const error = new Error('Seuls les fichiers vidéo ou images sont autorisés');
+    error.status = 403;
+    cb(error, false);
+  }
+};
 // Définir le stockage pour les photos de profil
 const profilePhotoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -72,6 +83,29 @@ const messageFileStorage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
+  }
+});// Définir le stockage pour les fichiers de story
+const storyFileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, 'uploads/storyImages');
+    } else if (file.mimetype.startsWith('video/')) {
+      cb(null, 'uploads/storyVideos');
+    } else {
+      cb(new Error('Format de fichier non autorisé'), false);
+    }
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
+  }
+});
+
+// Configurer Multer pour les fichiers de story
+const uploadStoryFile = multer({
+  storage: storyFileStorage,
+  fileFilter: filterStoryFile,
+  limits: {
+    fileSize: MAX_FILE_SIZE
   }
 });
 
@@ -115,5 +149,6 @@ const uploadMessageFile = multer({
 module.exports = {
   uploadProfilePhoto,
   uploadGroupPhoto,
-  uploadMessageFile
+  uploadMessageFile,
+  uploadStoryFile
 };

@@ -85,7 +85,7 @@ const utilisateurSchema = new mongoose.Schema({
 }, { timestamps: true });
 // Enregistrement du middleware au niveau du modèle
 utilisateurSchema.pre('findOneAndUpdate', blockRelationArraysUpdates);
-utilisateurSchema.post('remove',  async function(utilisateur) {
+utilisateurSchema.pre('findByIdAndDelete',  async function(utilisateur) {
   try {
  
     if (utilisateur.photo) {
@@ -287,17 +287,24 @@ utilisateurSchema.methods.deleteStory = async function(storyId) {
     await this.UpdatePresence();
     // Vérifier si l'utilisateur a créé la story
     const Story= mongoose.model('Story');
+    const story=await Story.findById(storyId);
+    if (!story) {
+      throw new Error('la story n\'existe pas.');
+    }
+
+
     const index = this.stories.indexOf(storyId);
     if (index === -1) {
       throw new Error('L\'utilisateur n\'a pas créé cette story.');
     }
-
+    await Story.deleteOne({ _id: storyId });
+    //await Story.findByIdAndDelete(storyId);
+    
     // Supprimer l'ID de la story du tableau stories
     this.stories.splice(index, 1);
     await this.save();
 
-    // Supprimer la story de la base de données
-    await Story.findByIdAndDelete(storyId);
+
 
     return 'Story supprimée avec succès.';
   } catch (error) {
@@ -692,6 +699,27 @@ utilisateurSchema.methods.changePhotoGroup = async function(groupeId, newPhotoUr
     return groupe;
   } catch (error) {
     console.error('Erreur lors du changement de la photo du groupe :', error);
+    throw error;
+  }
+};
+utilisateurSchema.methods.voirStory =async function(storyId) {
+  try {
+    await this.UpdatePresence();
+    const Story = mongoose.model('Story');
+    const story = await Story.findById(storyId).populate('utilisateur');
+    if (!story) {
+      throw new Error('story non trouvé');
+    }
+    
+    const dejavu = story.vues.some(entry => entry.equals(this._id));
+    if (!dejavu&&!story.utilisateur._id.equals(this._id)) {
+            story.vues.push(this._id );
+            await story.save();
+          }
+
+    return story;
+  } catch (error) {
+    console.error(error);
     throw error;
   }
 };

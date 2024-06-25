@@ -197,6 +197,19 @@ class UtilisateurService {
       throw error;
     }
   }
+  async voirStory(utilisateurId,storyId)
+  {
+    try {
+      const utilisateur = await Utilisateur.findById(utilisateurId);
+      if (!utilisateur) {
+        throw new Error('Utilisateur non trouvé');
+      }
+      return await utilisateur.voirStory(storyId);
+    }   catch (error) {
+      console.error('Erreur lors de lecture du story :', error);
+      throw error;
+    }
+  }
   async changePassword(userId, oldPassword, newPassword) {
     try {
       const user = await Utilisateur.findById(userId);

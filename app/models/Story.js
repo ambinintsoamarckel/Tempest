@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const cron = require('node-cron');
-
+const fs = require('fs');
 const storySchema = new mongoose.Schema({
   utilisateur: {
     type: mongoose.Schema.Types.ObjectId,
@@ -10,7 +10,7 @@ const storySchema = new mongoose.Schema({
   contenu: {
     type: {
       type: String,
-      enum: ['texte', 'image', 'vidéo'],
+      enum: ['texte', 'image', 'video'],
       required: true
     },
     texte: {
@@ -39,23 +39,27 @@ const storySchema = new mongoose.Schema({
     ref: 'Utilisateur'
   }],
 });
-
-// Middleware pour la suppression automatique des stories expirées
-/* storySchema.post('save', async function(story) {
-  const expirationDelay = story.dateExpiration - Date.now();
-
-  // Déclenche une tâche cron pour supprimer la story à l'expiration
-  cron.schedule('expire', async () => {
-    try {
-      await Story.findByIdAndDelete(story._id);
-      console.log(`Story ${story._id} supprimée avec succès.`);
-    } catch (error) {
-      console.error(`Erreur lors de la suppression de la story ${story._id} :`, error);
+// Middleware pour supprimer les fichiers associés avant de supprimer le document
+storySchema.pre('deleteOne', async function(next) {
+  try {
+    const story = this;
+    console.log(story);
+    if (story.contenu && ['image', 'vidéo'].includes(story.contenu.type)) {
+      console.log('anaty condition');
+      const filePath = path.join(__dirname, '../../', story.contenu[story.contenu.type].split('3000/')[1]);
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
+        } else {
+          console.log(`Fichier ${filePath} supprimé avec succès.`);
+        }
+      });
     }
-  }, {
-    start: false,
-    delay: expirationDelay
-  });
-}); */
+    next();
+  } catch (error) {
+    console.error('Erreur lors de la suppression des fichiers associés :', error);
+    next(error);
+  }
+});
 
 module.exports = mongoose.model('Story', storySchema);
