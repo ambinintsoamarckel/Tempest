@@ -9,8 +9,13 @@ const messageGroupeSchema = new mongoose.Schema({
     ref: 'Groupe',
     required: true
   },
+  notification:{
+    default :false,
+    type: mongoose.Schema.Types.Boolean
 
-    luPar: [{
+  },
+
+  luPar: [{
       utilisateur: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Utilisateur'

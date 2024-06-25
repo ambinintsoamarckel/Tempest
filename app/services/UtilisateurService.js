@@ -39,8 +39,8 @@ class UtilisateurService {
   // Mettre à jour un utilisateur
   async updateUtilisateur(utilisateurId, data) {
     try {
-      const userModif= new Utilisateur(data);
-      const utilisateur = await Utilisateur.findByIdAndUpdate(utilisateurId, userModif, { new: true });
+  
+      const utilisateur = await Utilisateur.findByIdAndUpdate(utilisateurId, data, { new: true });
       if (!utilisateur) {
         throw new Error('Utilisateur non trouvé');
       }
@@ -260,13 +260,13 @@ class UtilisateurService {
     }
   }
 
-  async createGroup(userId,nomGroupe, photoGroupe, membresIds) {
+  async createGroup(userId,groupe) {
     try {
       const user = await Utilisateur.findById(userId);
       if (!user) {
         throw new Error('Utilisateur non trouvé.');
       }
-      const result = await user.createGroup(nomGroupe, photoGroupe, membresIds);
+      const result = await user.createGroup(groupe);
       return result;
     } catch (error) {
       throw error;

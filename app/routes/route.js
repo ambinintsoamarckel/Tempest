@@ -33,7 +33,15 @@ module.exports = (app) => {
     .put(protectedRoutes, utilisateurController.changePassword);
 
   app.route('/me/changePhoto')
-    .put(protectedRoutes, uploadProfilePhoto.single('photo'), utilisateurController.changePhoto);
+    .put(protectedRoutes, (req, res, next) => {
+      uploadProfilePhoto.single('photo')(req, res, function (err) {
+        if (err instanceof multer.MulterError || err) {
+          console.log('mandalo erreur');
+          return res.status(400).json({ message: err.message });
+        }
+        next();
+      });
+    }, utilisateurController.changePhoto);
 
   app.route('/me/quitGroup/:groupId')
     .post(protectedRoutes, utilisateurController.quitGroup);

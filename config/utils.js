@@ -16,8 +16,6 @@ const generateCookie = (sessionID) => {
     path: '/',
     secure: false // Mettez ceci à `true` si vous utilisez HTTPS
   });
-
-  console.log('cookie: ', sessionCookie); // Affiche le cookie de session
   return sessionCookie;
 };
 module.exports = {

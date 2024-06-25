@@ -256,6 +256,7 @@ module.exports = {
       return res.status(400).send(file.error.message);
     }
     const newPhotoUrl = req.file.path;
+    
     const photo = `${req.protocol}://mahm.tempest.dov:3000/${newPhotoUrl}`;
     const mimetype = req.file.mimetype; 
     try {
@@ -274,6 +275,7 @@ module.exports = {
         });
     });
     } catch (error) {
+      console.error(file.error);
       res.status(400).json({ message: error.message });
     }
   },
@@ -290,10 +292,10 @@ module.exports = {
   },
 
   async createGroup(req, res) {
-    const { nom, photo, membres } = req.body;
+
 
     try {
-      const result = await utilisateurService.createGroup(req.session.passport.user.id, nom, photo, membres);
+      const result = await utilisateurService.createGroup(req.session.passport.user.id, req.body);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -311,10 +313,10 @@ module.exports = {
 
   // New Functions
   async removeGroup(req, res) {
-    const { groupId } = req.params;
+    const { id } = req.params;
 
     try {
-      const result = await utilisateurService.removeGroup(req.session.passport.user.id, groupId);
+      const result = await utilisateurService.removeGroup(req.session.passport.user.id, id);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -322,7 +324,7 @@ module.exports = {
   },
 
   async changePhotoGroup(req, res) {
-    const { groupId } = req.params;
+    const { id } = req.params;
     const file = req.file;
     if (!file) {
       return res.status(400).send('Aucun fichier uploadé');
@@ -337,7 +339,7 @@ module.exports = {
     const mimetype = req.file.mimetype; 
 
     try {
-      const result = await utilisateurService.changePhotoGroup(req.session.passport.user.id, groupId,photo);
+      const result = await utilisateurService.changePhotoGroup(req.session.passport.user.id, id,photo);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -345,11 +347,11 @@ module.exports = {
   },
 
   async addMember(req, res) {
-    const { groupId } = req.params;
-    const { membre } = req.body;
+    const { id,utilisateurId } = req.params;
+
 
     try {
-      const result = await utilisateurService.addMember(req.session.passport.user.id, groupId, membre);
+      const result = await utilisateurService.addMember(req.session.passport.user.id, id, utilisateurId);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -357,22 +359,22 @@ module.exports = {
   },
 
   async removeMember(req, res) {
-    const { groupId } = req.params;
-    const { membre } = req.body;
+    const { id,utilisateurId } = req.params;
+
 
     try {
-      const result = await utilisateurService.removeMember(req.session.passport.user.id, groupId, membre);
+      const result = await utilisateurService.removeMember(req.session.passport.user.id, id, utilisateurId);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
   },
   async updategroup(req, res) {
-    const { groupId } = req.params;
-    const { data } = req.body;
+    const { id } = req.params;
+ 
 
     try {
-      const result = await utilisateurService.updateGroup(req.session.passport.user.id, groupId, data);
+      const result = await utilisateurService.updateGroup(req.session.passport.user.id, id, req.body);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });

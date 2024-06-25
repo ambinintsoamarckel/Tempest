@@ -235,7 +235,6 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
       const ExpId = message.expediteur._id;
       if (!isUserMember&&!ExpId.equals(this._id)) {
         message.luPar.push({ utilisateur: this._id, dateLecture: Date.now() });
-        console.log(message.luPar);
         await message.save();
       }
     }
@@ -249,6 +248,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
         email: message.expediteur.email,
         photo: message.expediteur.photo
       },
+      notification: message.notification,
       luPar: message.luPar
     }));
 
@@ -373,7 +373,8 @@ utilisateurSchema.methods.findLastConversations = async function() {
           dernierMessage: dernierMessage ? {
             contenu: dernierMessage.contenu,
             luPar: dernierMessage.luPar,
-            dateEnvoi: dernierMessage.dateEnvoi
+            dateEnvoi: dernierMessage.dateEnvoi,
+            notification: dernierMessage.notification
           } : null
         };
       }
@@ -463,17 +464,19 @@ utilisateurSchema.methods.quitGroup = async function(groupeId) {
     if (memberIndex === -1) {
       throw new Error('Vous n\'êtes pas membre de ce groupe.');
     }
-
-    groupe.membres.splice(memberIndex, 1);
-    await groupe.save();
-
-    const groupIndex = this.groupes.indexOf(groupeId);
-    if (groupIndex > -1) {
-      this.groupes.splice(groupIndex, 1);
-      await this.save();
+    
+    if (groupe.createur.equals(this._id)) {
+      throw new Error('Vous ne pouvez pas quitté ce groupe vous êtes le créateur.');
     }
-
-   
+    const message={
+      contenu:{
+        type:'texte',
+        texte: this.nom+' a quitté le groupe'
+      },
+      notification:true
+    };
+    await this.sendMessageToGroup(groupe._id,message);
+    await groupe.supprimerMembre(this._id);
     return this;
 
   } catch (error) {
@@ -481,27 +484,36 @@ utilisateurSchema.methods.quitGroup = async function(groupeId) {
     throw error;
   }
 };
-utilisateurSchema.methods.createGroup = async function(nomGroupe, photoGroupe, membresIds) {
+utilisateurSchema.methods.createGroup = async function(groupe) {
   try {
     await this.UpdatePresence();
     const Groupe = mongoose.model('Groupe');
 
     // Vérifier que le nombre minimum de membres est respecté
-    if (!membresIds || membresIds.length < 2) {
+    if (!groupe.membres || groupe.membres.length < 2) {
       throw new Error('Un groupe doit avoir au moins trois membres, y compris le créateur.');
     }
 
     // Créer une nouvelle instance de Groupe
     const nouveauGroupe = new Groupe({
-      nom: nomGroupe,
-      photo: photoGroupe || null,
-      membres: [this._id, ...membresIds],
+      nom: groupe.nom,
+      photo: groupe.photo || null,
+      description: groupe.description || null,
+      membres: [this._id, ...groupe.membres],
       createur:this._id
     });
 
     // Sauvegarder le nouveau groupe
     await nouveauGroupe.save();
-    return 'Groupe créé avec succès.';
+    const message={
+      contenu:{
+        type:'texte',
+        texte:'créé le groupe'
+      },
+      notification:true
+    };
+    await this.sendMessageToGroup(nouveauGroupe._id,message);
+    return nouveauGroupe;
   } catch (error) {
     console.error('Erreur lors de la création du groupe :', error);
     throw error;
@@ -587,7 +599,9 @@ utilisateurSchema.methods.ajouterAuGroupe = async function(groupeId, utilisateur
   try {
     await this.UpdatePresence();
     const Groupe = mongoose.model('Groupe');
+    const User= mongoose.model('Utilisateur');
     const groupe = await Groupe.findById(groupeId);
+    const user= await User.findById(utilisateurId);
 
     if (!groupe) {
       throw new Error('Groupe non trouvé');
@@ -597,8 +611,17 @@ utilisateurSchema.methods.ajouterAuGroupe = async function(groupeId, utilisateur
     if (!groupe.membres.includes(this._id)) {
       throw new Error('Vous devez être membre du groupe pour ajouter un utilisateur.');
     }
+    
     await groupe.ajouterMembre(utilisateurId);
-    return 'Utilisateur ajouté au groupe avec succès.';
+    const message={
+      contenu:{
+        type:'texte',
+        texte:'ajouté '+user.nom+' au groupe'
+      },
+      notification:true
+    };
+    await this.sendMessageToGroup(groupe._id,message);
+    return groupe;
   } catch (error) {
     console.error('Erreur lors de l\'ajout de l\'utilisateur au groupe :', error);
     throw error;
@@ -610,7 +633,10 @@ utilisateurSchema.methods.supprimerDuGroupe = async function(groupeId, utilisate
   try {
     await this.UpdatePresence();
     const Groupe = mongoose.model('Groupe');
+    const User= mongoose.model('Utilisateur');
     const groupe = await Groupe.findById(groupeId);
+    const user= await User.findById(utilisateurId);
+
 
     if (!groupe) {
       throw new Error('Groupe non trouvé');
@@ -621,7 +647,15 @@ utilisateurSchema.methods.supprimerDuGroupe = async function(groupeId, utilisate
       throw new Error('Vous devez être le créateur du groupe pour supprimer un utilisateur.');
     }
     await groupe.supprimerMembre(utilisateurId);
-    return 'Utilisateur supprimé du groupe avec succès.';
+    const message={
+      contenu:{
+        type:'texte',
+        texte:'supprimé '+user.nom+' du groupe'
+      },
+      notification:true
+    };
+    await this.sendMessageToGroup(groupe._id,message);
+    return groupe;
   } catch (error) {
     console.error('Erreur lors de la suppression de l\'utilisateur du groupe :', error);
     throw error;
@@ -629,7 +663,7 @@ utilisateurSchema.methods.supprimerDuGroupe = async function(groupeId, utilisate
 };
 
 // Méthode d'instance pour changer la photo du groupe
-utilisateurSchema.methods.changeGroupPhoto = async function(groupeId, newPhotoUrl) {
+utilisateurSchema.methods.changePhotoGroup = async function(groupeId, newPhotoUrl) {
   try {
     await this.UpdatePresence();
     const Groupe = mongoose.model('Groupe');
@@ -646,6 +680,14 @@ utilisateurSchema.methods.changeGroupPhoto = async function(groupeId, newPhotoUr
 
     // Appeler la méthode du groupe pour changer la photo
     await groupe.changePhoto(newPhotoUrl);
+    const message={
+      contenu:{
+        type:'texte',
+        texte:'changé la photo de groupe'
+      },
+      notification:true
+    };
+    await this.sendMessageToGroup(groupe._id,message);;
 
     return groupe;
   } catch (error) {
@@ -766,6 +808,7 @@ utilisateurSchema.methods.transferToGroup = async function(originalMessageId, gr
 utilisateurSchema.methods.updateGroup = async function(groupeId, updateData) {
   try {
     await this.UpdatePresence();
+    const Groupe = mongoose.model('Groupe');
     const groupe = await Groupe.findById(groupeId);
 
     if (!groupe) {
@@ -776,10 +819,23 @@ utilisateurSchema.methods.updateGroup = async function(groupeId, updateData) {
     if (!groupe.membres.includes(this._id)) {
       throw new Error('Vous devez être membre du groupe pour changer la photo.');
     }
-    // Mettre à jour les champs du groupe avec les données fournies
-    const updatedGroup = await Groupe.findOneAndUpdate(groupeId ,updateData,{ new: true });
+    console.log(updateData);
+    { 
+      if(updateData.nom)
+        {
+          groupe.nom=updateData.nom;
 
-    return updatedGroup;
+        }
+      if(updateData.description)
+        {
+          groupe.description=updateData.description;
+        }
+      await groupe.save();
+
+    }
+
+
+    return groupe;
   } catch (error) {
     console.error('Erreur lors de la mise à jour du groupe :', error);
     throw error;
