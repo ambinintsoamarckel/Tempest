@@ -2,6 +2,7 @@ const utilisateurService = require('../services/UtilisateurService');
 const messageService = require('../services/MessageService');
 const fs = require('fs');
 const path = require('path');
+const {generateCookie}=require('../../config/utils');
 
 function prepareMessageData(req) {
   let messageData;
@@ -117,7 +118,7 @@ module.exports = {
             if (err) {
                 return res.status(500).json({ message: 'Erreur lors de la reconnexion après le changement de l\'utilisateur.' });
             }
-            return res.status(200).json({ message: 'Utilisateur changé avec succès', user: result });
+            return res.status(200).json({ message: 'Utilisateur changé avec succès', user: result,'Set-Cookie': generateCookie(req.sessionID) });
         });
     });
     } catch (error) {
@@ -236,7 +237,7 @@ module.exports = {
                 if (err) {
                     return res.status(500).json({ message: 'Erreur lors de la reconnexion après le changement de mot de passe.' });
                 }
-                return res.status(200).json({ message: 'Mot de passe changé avec succès', user: req.user });
+                return res.status(200).json({ message: 'Mot de passe changé avec succès', user: req.user,'Set-Cookie': generateCookie(req.sessionID) });
             });
         });
     } catch (error) {
@@ -269,7 +270,7 @@ module.exports = {
             if (err) {
                 return res.status(500).json({ message: 'Erreur lors de la reconnexion après le changement de mot de pdp.' });
             }
-            return res.status(200).json({ message: 'PdP changé avec succès', user: result});
+            return res.status(200).json({ message: 'PdP changé avec succès', user: result,'Set-Cookie': generateCookie(req.sessionID)});
         });
     });
     } catch (error) {

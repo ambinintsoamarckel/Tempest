@@ -513,13 +513,14 @@ utilisateurSchema.methods.UpdatePresence = async function() {
     if (this.presence === 'inactif') {
       // Mettre à jour la présence à "en ligne"
       this.presence = 'en ligne';
+    }
 
       // Mettre à jour l'horodatage de la dernière activité
       this.lastActivity = Date.now();
 
       // Enregistrer les modifications dans la base de données
       await this.save();
-    }
+    
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la présence :', error);
   }
