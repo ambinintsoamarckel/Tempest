@@ -9,8 +9,17 @@ const { uploadProfilePhoto, uploadMessageFile, uploadGroupPhoto } = require('../
 
 // Middleware pour les routes protégées
 const protectedRoutes = require('./protectedRoutes');
-const UtilisateurService = require('../services/UtilisateurService');
 const UtilisateurController = require('../controllers/UtilisateurController');
+function handleMulterErrors(err, req, res, next) {
+  if (err instanceof multer.MulterError) {
+    // Gérer les erreurs spécifiques à Multer
+    return res.status(400).json({ message: err.message });
+  } else if (err) {
+    // Gérer les erreurs personnalisées du filtre de fichier
+    return res.status(err.status || 500).json({ message: err.message });
+  }
+  next();
+}
 
 module.exports = (app) => {
   // Routes pour l'utilisateur
@@ -33,15 +42,7 @@ module.exports = (app) => {
     .put(protectedRoutes, utilisateurController.changePassword);
 
   app.route('/me/changePhoto')
-    .put(protectedRoutes, (req, res, next) => {
-      uploadProfilePhoto.single('photo')(req, res, function (err) {
-        if (err instanceof multer.MulterError || err) {
-          console.log('mandalo erreur');
-          return res.status(400).json({ message: err.message });
-        }
-        next();
-      });
-    }, utilisateurController.changePhoto);
+    .put(protectedRoutes, uploadProfilePhoto.single('photo'), handleMulterErrors, utilisateurController.changePhoto);
 
   app.route('/me/quitGroup/:groupId')
     .post(protectedRoutes, utilisateurController.quitGroup);
@@ -50,25 +51,11 @@ module.exports = (app) => {
     .post(protectedRoutes, utilisateurController.createGroup);
 
   app.route('/messages/personne/:contactId')
-    .post(protectedRoutes, (req, res, next) => {
-      uploadMessageFile.single('file')(req, res, function (err) {
-        if (err instanceof multer.MulterError || err) {
-          return res.status(400).json({ message: err.message });
-        }
-        next();
-      });
-    }, utilisateurController.envoyerMessageAPersonne)
+    .post(protectedRoutes,uploadMessageFile.single('file'), handleMulterErrors, utilisateurController.envoyerMessageAPersonne)
     .get(protectedRoutes, utilisateurController.recupererDiscussionAvecContact);
 
   app.route('/messages/groupe/:groupeId')
-    .post(protectedRoutes, (req, res, next) => {
-      uploadMessageFile.single('file')(req, res, function (err) {
-        if (err instanceof multer.MulterError || err) {
-          return res.status(400).json({ message: err.message });
-        }
-        next();
-      });
-    }, utilisateurController.envoyerMessageAGroupe)
+    .post(protectedRoutes,uploadMessageFile.single('file'), handleMulterErrors, utilisateurController.envoyerMessageAGroupe)
     .get(protectedRoutes, utilisateurController.recupererDiscussionAvecGroupe);
   app.route('/messages/personne/:contactId/:messageId')
     .post(protectedRoutes, utilisateurController.transfererMessageAPersonne)
@@ -96,14 +83,7 @@ module.exports = (app) => {
     .delete(protectedRoutes, utilisateurController.removeMember);
 
   app.route('/groupes/:id/changePhoto')
-    .put(protectedRoutes, (req, res, next) => {
-      uploadGroupPhoto.single('photo')(req, res, function (err) {
-        if (err instanceof multer.MulterError || err) {
-          return res.status(400).json({ message: err.message });
-        }
-        next();
-      });
-    },utilisateurController.changePhotoGroup);
+    .put(protectedRoutes,uploadGroupPhoto.single('photo'), handleMulterErrors,utilisateurController.changePhotoGroup);
 
   // Routes pour les stories
   app.route('/stories')

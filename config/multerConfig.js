@@ -2,46 +2,40 @@ const multer = require('multer');
 const path = require('path');
 
 // Définir les constantes pour les limites et les types de fichiers autorisés
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 Mo pour les fichiers audio et vidéo
-const ALLOWED_IMAGE_MIMETYPES = ['image/jpeg', 'image/png', 'image/gif'];
-const ALLOWED_AUDIO_MIMETYPES = ['audio/mpeg', 'audio/wav'];
-const ALLOWED_VIDEO_MIMETYPES = ['video/mp4', 'video/mpeg'];
+const MAX_FILE_SIZE = 40 * 1024 * 1024; // 20 Mo pour les fichiers audio et vidéo
 
 // Fonction de filtrage pour les photos de profil et de groupe
-function filterImageFile(req, file, cb) {
-  if (file.size > MAX_FILE_SIZE) {
-    return cb(null, false, new Error('Fichier trop volumineux (maximum 20 Mo)'));
+const filterImageFile = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    const error = new Error('Seules les images sont autorisées');
+    error.status = 403;
+    cb(error, false);
   }
-
-  if (!ALLOWED_IMAGE_MIMETYPES.includes(file.mimetype)) {
-    return cb(null, false, new Error('Format de fichier non autorisé (JPEG, PNG, GIF uniquement)'));
-  }
-  return cb(null, true);
-}
+};
 
 // Fonction de filtrage pour les fichiers audio
-function filterAudioFile(req, file, cb) {
-  if (file.size > MAX_FILE_SIZE) {
-    return cb(null, false, new Error('Fichier trop volumineux (maximum 20 Mo)'));
+const filterAudioFile = (req, file, cb) => {
+  if (file.mimetype.startsWith('audio/')) {
+    cb(null, true);
+  } else {
+    const error = new Error('Seuls les fichiers audio sont autorisés');
+    error.status = 403;
+    cb(error, false);
   }
-
-  if (!ALLOWED_AUDIO_MIMETYPES.includes(file.mimetype)) {
-    return cb(null, false, new Error('Format de fichier non autorisé (MP3, WAV uniquement)'));
-  }
-  return cb(null, true);
-}
+};
 
 // Fonction de filtrage pour les fichiers vidéo
-function filterVideoFile(req, file, cb) {
-  if (file.size > MAX_FILE_SIZE) {
-    return cb(null, false, new Error('Fichier trop volumineux (maximum 20 Mo)'));
+const filterVideoFile = (req, file, cb) => {
+  if (file.mimetype.startsWith('video/')) {
+    cb(null, true);
+  } else {
+    const error = new Error('Seuls les fichiers vidéo sont autorisés');
+    error.status = 403;
+    cb(error, false);
   }
-
-  if (!ALLOWED_VIDEO_MIMETYPES.includes(file.mimetype)) {
-    return cb(null, false, new Error('Format de fichier non autorisé (MP4, MPEG uniquement)'));
-  }
-  return cb(null, true);
-}
+};
 
 // Définir le stockage pour les photos de profil
 const profilePhotoStorage = multer.diskStorage({
@@ -84,13 +78,19 @@ const messageFileStorage = multer.diskStorage({
 // Configurer Multer pour les photos de profil avec filtre
 const uploadProfilePhoto = multer({
   storage: profilePhotoStorage,
-  fileFilter: filterImageFile
+  fileFilter: filterImageFile,
+  limits: {
+    fileSize: MAX_FILE_SIZE
+  }
 });
 
 // Configurer Multer pour les photos de groupe avec filtre
 const uploadGroupPhoto = multer({
   storage: groupPhotoStorage,
-  fileFilter: filterImageFile
+  fileFilter: filterImageFile,
+  limits: {
+    fileSize: MAX_FILE_SIZE
+  }
 });
 
 // Configurer Multer pour les fichiers de message avec filtres spécifiques
@@ -106,6 +106,9 @@ const uploadMessageFile = multer({
     } else {
       cb(null, true);
     }
+  },
+  limits: {
+    fileSize: MAX_FILE_SIZE
   }
 });
 
