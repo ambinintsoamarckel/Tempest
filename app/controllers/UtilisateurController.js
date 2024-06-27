@@ -357,8 +357,8 @@ module.exports = {
   },
   async recherche(req, res) {
     try {
-      await utilisateurService.searchUtilisateurs(req.params.valeur);
-      res.status(204).send();
+      const utilisateur=await utilisateurService.searchUtilisateurs(req.params.valeur);
+      res.status(200.).json(utilisateur);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
     }
