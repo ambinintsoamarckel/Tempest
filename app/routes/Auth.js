@@ -6,6 +6,8 @@ const Utilisateur = require('../models/Utilisateur');
 const router = express.Router();
 const UtilisateurService= require('../services/UtilisateurService');
 const {generateCookie}=require('../../config/utils');
+const {getIo}=require('../../config/socketConfig')
+
 passport.use(new LocalStrategy(
   async function verify(username, password, cb) {
     try {
@@ -54,6 +56,8 @@ router.post('/login', (req, res, next) => {
       await user.UpdatePresence()
         .then(() => {
      // Envoyer la réponse avec le cookie dans le corps
+     let io=getIo();
+     io.emit('userStatusChanged', { userId: user.id, status: 'online', user: req.user });
        res.status(200).json({
        user: req.user,
        'Set-Cookie': generateCookie(req.sessionID)

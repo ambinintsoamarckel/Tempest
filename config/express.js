@@ -1,5 +1,6 @@
 const express = require('express');
-const app = express();
+const http = require('http'); // Importer le module HTTP
+const { initializeSocket } = require('./socketConfig'); 
 const { db, sessionStore } = require('../config/db'); // Importer la configuration de la base de données
 const passport = require('passport');
 const session = require('express-session'); // Importer le middleware de session
@@ -11,6 +12,7 @@ const updatePresence = require('./tasks');
 const cron = require('node-cron');
 const path = require('path');
 
+const app = express();
 const generateSecret = () => {
   return process.env.SESSION_SECRET || 'Mon-secret-qui-tue';
 };
@@ -20,6 +22,7 @@ const secret = generateSecret();
 const corsOptions = {
   origin: '*' // Expose 'set-cookie' header to the client
 };
+
 // Middleware pour transformer l'en-tête Authorization en cookie
 app.use((req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -49,16 +52,20 @@ const sessionConfig = {
     sameSite: 'None' // Assurez-vous que SameSite est 'None' pour permettre les cookies cross-site
   },
 };
-
+const server = http.createServer(app); // Créer un serveur HTTP
+initializeSocket(server);
 // Appliquer le middleware de session
 app.use(session(sessionConfig));
 app.use(passport.session());
 app.use('/', AuthRoute);
 require('../app/routes/route')(app);
 
+
 // Se connecter à la base de données avant de démarrer le serveur
 db.once('open', () => {
   // Démarrer le serveur
-  app.listen(3000, () =>   console.info('********* Serveur Express démarré sur le port 3000 **********'));
+  server.listen(3000, () => console.info('********* Serveur Express démarré sur le port 3000 **********'));
+
   var task = cron.schedule('* * * * *', updatePresence);
 });
+

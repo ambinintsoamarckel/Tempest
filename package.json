@@ -5,6 +5,7 @@
   "main": "./config/express.js",
   "scripts": {
     "start": "nodemon ./config/express.js --exec babel-node -e js",
+    "warning": "node --trace-warnings ./config/express.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
