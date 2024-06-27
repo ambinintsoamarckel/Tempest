@@ -149,7 +149,7 @@ module.exports = {
 
   async transfererMessageAPersonne(req, res) {
     try {
-      const messageData = prepareMessageData(req);
+
       const message = await utilisateurService.transferToPerson(req.session.passport.user.id, req.params.contactId, req.params.messageId);
       res.status(201).json(message);
     } catch (error) {
@@ -159,7 +159,7 @@ module.exports = {
 
   async transfererMessageAGroupe(req, res) {
     try {
-      const messageData = prepareMessageData(req);
+
       const message = await utilisateurService.transferToGroup(req.session.passport.user.id, req.params.groupeId, req.params.messageId);
       res.status(201).json(message);
     } catch (error) {

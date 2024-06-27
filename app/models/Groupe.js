@@ -89,11 +89,18 @@ groupeSchema.methods.ajouterMembre = async function(utilisateurId) {
     }
 
     // Add the user to the list of members
-    this.membres.push(utilisateurId);
-    await this.save();
+
 
     // Retrieve the new member and update their messages
     const nouveaumembre = await mongoose.model('Utilisateur').findById(utilisateurId);
+    if (!nouveaumembre) {
+      const error= new Error('L\'utilisateur non trouvé.');
+      error.status=404;
+      throw error;
+    }
+
+    this.membres.push(utilisateurId);
+    await this.save();
     for (const message of this.messages) {
       nouveaumembre.messagesGroupesRecus.push(message._id);
       const msg = await mongoose.model('MessageGroupe').findById(message._id);
@@ -114,7 +121,9 @@ groupeSchema.methods.supprimerMembre = async function(utilisateurId) {
   try {
     // Check if the user is a member of the group
     if (!this.membres.includes(utilisateurId)) {
-      throw new Error('L\'utilisateur n\'est pas membre du groupe.');
+      const error= new Error('L\'utilisateur n\'est pas membre du groupe.');
+      error.status=403;
+      throw error;
     }
 
     // Remove the user from the list of members

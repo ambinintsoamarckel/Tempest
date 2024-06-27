@@ -256,7 +256,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
     }
 
     const messagesSimplifies = messages.map(message => ({
-      
+      _id: message._id,
       contenu:message.contenu,
       expediteur: {
         _id: message.expediteur._id,
@@ -356,6 +356,7 @@ utilisateurSchema.methods.findLastConversations = async function() {
       const contactNom = isEnvoye ? message.destinataire.nom : message.expediteur.nom;
       const contactPhoto = isEnvoye ? message.destinataire.photo : message.expediteur.photo;
       const dernierMessage = {
+        _id: message._id,
         contenu: message.contenu,
         lu: message.lu,
         dateEnvoi: message.dateEnvoi,
@@ -398,6 +399,7 @@ utilisateurSchema.methods.findLastConversations = async function() {
             photo: groupe.photo
           },
           dernierMessage: dernierMessage ? {
+            _id: dernierMessage._id,
             contenu: dernierMessage.contenu,
             luPar: dernierMessage.luPar,
             dateEnvoi: dernierMessage.dateEnvoi,
@@ -803,9 +805,10 @@ utilisateurSchema.methods.supprimerGroupe = async function(groupeId) {
     throw error;
   }
 };
-utilisateurSchema.methods.transferToPerson = async function(originalMessageId, destinataireId) {
+utilisateurSchema.methods.transferToPerson = async function( destinataireId,originalMessageId) {
   try {
     await this.UpdatePresence(); // Assure que la présence de l'utilisateur est mise à jour
+  
 
     // Trouve le message original par son ID
     const originalMessage = await mongoose.model('MessageAbstrait').findById(originalMessageId);
@@ -815,7 +818,7 @@ utilisateurSchema.methods.transferToPerson = async function(originalMessageId, d
       throw error;
     }
 
-    const discriminatorKey = originalMessage.__t;
+    const discriminatorKey = originalMessage.type;
 
     let isAuthorized = false;
 
@@ -843,10 +846,7 @@ utilisateurSchema.methods.transferToPerson = async function(originalMessageId, d
     }
 
     // Prépare le contenu du message à transférer
-    const contenu = {
-      type: originalMessage.type,
-      contenu: originalMessage.contenu
-    };
+    const contenu ={contenu:originalMessage.contenu};
 
     // Envoie le message à la personne spécifiée et récupère le message transféré
     const transferredMessage = await this.sendMessageToPerson(destinataireId, contenu);
@@ -856,13 +856,46 @@ utilisateurSchema.methods.transferToPerson = async function(originalMessageId, d
     throw error;
   }
 };
-utilisateurSchema.methods.transferToGroup = async function(originalMessageId, groupeId) {
+utilisateurSchema.methods.transferToGroup = async function( groupeId,originalMessageId) {
   try {
     await this.UpdatePresence(); // Assure que la présence de l'utilisateur est mise à jour
 
     // Trouve le groupe par son ID
     const Groupe = mongoose.model('Groupe');
     const groupe = await Groupe.findById(groupeId);
+    const originalMessage = await mongoose.model('MessageAbstrait').findById(originalMessageId);
+    if (!originalMessage) {
+      const error= new Error('Le message original spécifié n\'existe pas.');
+      error.status = 404;
+      throw error;
+    }
+
+    const discriminatorKey = originalMessage.type;
+
+    let isAuthorized = false;
+
+    if (discriminatorKey === 'MessagePrive') {
+      await originalMessage.populate('expediteur destinataire');
+      if (originalMessage.expediteur.equals(this._id) || originalMessage.destinataire.equals(this._id)) {
+        isAuthorized = true;
+      }
+    } else if (discriminatorKey === 'MessageGroupe') {
+      await originalMessage.populate('expediteur groupe');
+      const groupe = await mongoose.model('Groupe').findById(originalMessage.groupe);
+      if (originalMessage.expediteur.equals(this._id) || groupe.createur.equals(this._id)) {
+        isAuthorized = true;
+      }
+    } else {
+      const error= new Error('Type de message invalide.');
+      error.status = 400;
+      throw error;
+    }
+
+    if (!isAuthorized) {
+      const error= new Error('Vous n\'êtes pas autorisé à transférer ce message.');
+      error.status = 403;
+      throw error;
+    }
     if (!groupe) {
       const error= new Error('Groupe non trouvé');
       error.status = 404;
@@ -876,19 +909,10 @@ utilisateurSchema.methods.transferToGroup = async function(originalMessageId, gr
       throw error;
     }
 
-    // Trouve le message original par son ID
-    const originalMessage = await mongoose.model('MessageAbstrait').findById(originalMessageId);
-    if (!originalMessage) {
-      const error= new Error('Le message original spécifié n\'existe pas.');
-      error.status = 404;
-      throw error;
-    }
+
 
     // Prépare le contenu du message à transférer
-    const contenu = {
-      type: originalMessage.type,
-      contenu: originalMessage.contenu
-    };
+    const contenu =  {contenu:originalMessage.contenu};
 
     // Envoie le message au groupe spécifié et récupère le message transféré
     const transferredMessage = await this.sendMessageToGroup(groupeId, contenu);
