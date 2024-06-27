@@ -1,9 +1,9 @@
 // socketConfig.js
-
+let io;
 
 const initializeSocket = (server) => {
   const socketIo = require('socket.io');
-  let io = socketIo(server);
+  io = socketIo(server);
   io.on('connection', (socket) => {
     console.log('Nouvel utilisateur connecté');
 

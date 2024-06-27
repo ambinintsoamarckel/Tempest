@@ -4,12 +4,19 @@ const fs = require('fs');
 const path = require('path');
 const {generateCookie, prepareMessageData,prepareStoryData}=require('../../config/utils');
 
+/*socket*/
+const { getIo } = require('../../config/socketConfig');
+
+const io = getIo();
 
 
 module.exports = {
   async creerUtilisateur(req, res) {
     try {
       const utilisateur = await utilisateurService.createUtilisateur(req.body);
+      
+      io.emit('utilisateur_cree', utilisateur); 
+
       res.status(201).json(utilisateur);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -56,6 +63,10 @@ module.exports = {
   async modifierUtilisateur(req, res) {
     try {
       const utilisateur = await utilisateurService.updateUtilisateur(req.params.id, req.body);
+      
+      io.emit('utilisateur_modifie', utilisateur);
+
+      
       res.status(200).json(utilisateur);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -75,7 +86,11 @@ module.exports = {
             if (err) {
                 return res.status(500).json({ message: 'Erreur lors de la reconnexion après le changement de l\'utilisateur.' });
             }
+            
+            io.emit('utilisateur_modifie', result);
+
             return res.status(200).json({ message: 'Utilisateur changé avec succès', user: result,'Set-Cookie': generateCookie(req.sessionID) });
+
         });
     });
     } catch (error) {
@@ -86,6 +101,9 @@ module.exports = {
   async supprimerUtilisateur(req, res) {
     try {
       await utilisateurService.deleteUtilisateur(req.params.id);
+
+      io.emit('utilisateur_supprime', req.params.id); 
+
       res.status(204).send();
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -95,6 +113,9 @@ module.exports = {
   async supprimerMonCompte(req, res) {
     try {
       await utilisateurService.deleteUtilisateur(req.session.passport.user.id);
+      
+      io.emit('utilisateur_supprime', req.session.passport.user.id);
+      
       res.status(204).send();
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -132,6 +153,9 @@ module.exports = {
     try {
       const messageData = prepareMessageData(req);
       const message = await utilisateurService.sendMessageToPerson(req.session.passport.user.id, req.params.contactId, messageData);
+      
+      io.emit('message_envoye', message);
+
       res.status(201).json(message);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -142,6 +166,9 @@ module.exports = {
     try {
       const messageData = prepareMessageData(req);
       const message = await utilisateurService.sendMessageToGroup(req.session.passport.user.id, req.params.groupeId, messageData);
+      
+      io.emit('message_envoye', message); 
+      
       res.status(201).json(message);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -152,6 +179,9 @@ module.exports = {
     try {
 
       const message = await utilisateurService.transferToPerson(req.session.passport.user.id, req.params.contactId, req.params.messageId);
+      
+      io.emit('message_transfere', message);
+      
       res.status(201).json(message);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -162,6 +192,9 @@ module.exports = {
     try {
 
       const message = await utilisateurService.transferToGroup(req.session.passport.user.id, req.params.groupeId, req.params.messageId);
+      
+      io.emit('message_transfere', message);
+      
       res.status(201).json(message);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -172,6 +205,9 @@ module.exports = {
     try {
       const data = prepareStoryData(req);
       const story = await utilisateurService.addStory(req.session.passport.user.id, data);
+            
+      io.emit('story_ajoutee', story);
+      
       res.status(201).json(story);
     } catch (error) {
       console.error(error);
@@ -196,6 +232,9 @@ module.exports = {
                 if (err) {
                     return res.status(500).json({ message: 'Erreur lors de la reconnexion après le changement de mot de passe.' });
                 }
+
+                io.emit('mot_de_passe_change', result);
+
                 return res.status(200).json({ message: 'Mot de passe changé avec succès', user: req.user,'Set-Cookie': generateCookie(req.sessionID) });
             });
         });
@@ -230,6 +269,9 @@ module.exports = {
             if (err) {
                 return res.status(500).json({ message: 'Erreur lors de la reconnexion après le changement de mot de pdp.' });
             }
+            
+            io.emit('photo_changee', result); 
+
             return res.status(200).json({ message: 'PdP changé avec succès', user: result,'Set-Cookie': generateCookie(req.sessionID)});
         });
     });
@@ -244,6 +286,9 @@ module.exports = {
 
     try {
       const result = await utilisateurService.quitGroup(req.session.passport.user.id, groupId);
+            
+      io.emit('groupe_quitte', result);
+      
       res.status(200).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -255,6 +300,9 @@ module.exports = {
 
     try {
       const result = await utilisateurService.createGroup(req.session.passport.user.id, req.body);
+      
+      io.emit('groupe_cree', result);
+      
       res.status(200).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -264,6 +312,9 @@ module.exports = {
   async supprimerStory(req, res) {
     try {
       await utilisateurService.deleteStory(req.session.passport.user.id, req.params.id);
+      
+      io.emit('story_supprimee', req.params.id);
+      
       res.status(204).send();
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -272,7 +323,10 @@ module.exports = {
   async voirStory(req, res) {
     try {
      const story= await utilisateurService.voirStory(req.session.passport.user.id, req.params.id);
-      res.status(200).json(story);
+      
+     io.emit('story_vue', story);
+     
+     res.status(200).json(story);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
     }
@@ -284,6 +338,9 @@ module.exports = {
 
     try {
       const result = await utilisateurService.removeGroup(req.session.passport.user.id, id);
+            
+      io.emit('groupe_supprime', result);
+      
       res.status(200).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -307,6 +364,9 @@ module.exports = {
 
     try {
       const result = await utilisateurService.changePhotoGroup(req.session.passport.user.id, id,photo);
+            
+      io.emit('photo_groupe_changee', result);
+      
       res.status(200).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -319,6 +379,9 @@ module.exports = {
 
     try {
       const result = await utilisateurService.addMember(req.session.passport.user.id, id, utilisateurId);
+      
+      io.emit('membre_ajoute', result);
+
       res.status(200).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -331,6 +394,9 @@ module.exports = {
 
     try {
       const result = await utilisateurService.removeMember(req.session.passport.user.id, id, utilisateurId);
+      
+      io.emit('membre_supprime', result);
+      
       res.status(200).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -342,6 +408,9 @@ module.exports = {
 
     try {
       const result = await utilisateurService.updateGroup(req.session.passport.user.id, id, req.body);
+            
+      io.emit('groupe_mis_a_jour', result);
+      
       res.status(200).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -351,6 +420,9 @@ module.exports = {
   async supprimerMessage(req, res) {
     try {
       await utilisateurService.removeMessage(req.session.passport.user.id, req.params.id);
+      
+      io.emit('message_supprime', req.params.id);
+      
       res.status(204).send();
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -359,6 +431,9 @@ module.exports = {
   async recherche(req, res) {
     try {
       const utilisateur=await utilisateurService.searchUtilisateurs(req.params.valeur);
+            
+      io.emit('utilisateur_recherche', utilisateur);
+      
       res.status(200.).json(utilisateur);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
