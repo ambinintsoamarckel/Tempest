@@ -42,7 +42,9 @@ class UtilisateurService {
   
       const utilisateur = await Utilisateur.findByIdAndUpdate(utilisateurId, data, { new: true });
       if (!utilisateur) {
-        throw new Error('Utilisateur non trouvé');
+        const error= new Error('Utilisateur non trouvé');
+        error.status = 404;
+        throw error;
       }
       return utilisateur;
     } catch (error) {
@@ -54,11 +56,13 @@ class UtilisateurService {
   // Supprimer un utilisateur
   async deleteUtilisateur(utilisateurId) {
     try {
-      const utilisateur = await Utilisateur.findByIdAndDelete(utilisateurId);
+      const utilisateur = await Utilisateur.findById(utilisateurId);
       if (!utilisateur) {
-        throw new Error('Utilisateur non trouvé');
+        const error= new Error('Utilisateur non trouvé');
+        error.status = 404;
+        throw error;
       }
-      return utilisateur;
+      return utilisateur.deleteOne();
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'utilisateur :', error);
       throw error;
@@ -80,7 +84,9 @@ class UtilisateurService {
     try {
       const utilisateur = await Utilisateur.findById(utilisateurId).populate('groupes');
       if (!utilisateur) {
-        throw new Error('Utilisateur non trouvé');
+        const error= new Error('Utilisateur non trouvé');
+        error.status = 404;
+        throw error;
       }
       return await utilisateur.findLastConversations();
     } catch (error) {
@@ -94,7 +100,9 @@ class UtilisateurService {
     try {
       const utilisateur = await Utilisateur.findById(utilisateurId);
       if (!utilisateur) {
-        throw new Error('Utilisateur non trouvé');
+        const error= new Error('Utilisateur non trouvé');
+        error.status = 404;
+        throw error;
       }
       return await utilisateur.findDiscussionWithPerson(contactId);
     } catch (error) {
@@ -106,7 +114,9 @@ class UtilisateurService {
     try {
       const utilisateur = await Utilisateur.findById(utilisateurId);
       if (!utilisateur) {
-        throw new Error('Utilisateur non trouvé');
+        const error= new Error('Utilisateur non trouvé');
+        error.status = 404;
+        throw error;
       }
       return await utilisateur.findDiscussionWithGroup(groupId);
     } catch (error) {
@@ -120,7 +130,9 @@ class UtilisateurService {
     try {
       const utilisateur = await Utilisateur.findById(expediteurId);
       if (!utilisateur) {
-        throw new Error('Utilisateur non trouvé');
+        const error= new Error('Utilisateur non trouvé');
+        error.status = 404;
+        throw error;
       }
       return await utilisateur.sendMessageToPerson(destinataireId,contenu);
     }  catch (error) {
@@ -134,7 +146,9 @@ class UtilisateurService {
     try {
       const utilisateur = await Utilisateur.findById(expediteurId);
       if (!utilisateur) {
-        throw new Error('Utilisateur non trouvé');
+        const error= new Error('Utilisateur non trouvé');
+        error.status = 404;
+        throw error;
       }
       return await utilisateur.sendMessageToGroup(groupeId,contenu);
     }   catch (error) {
@@ -147,7 +161,9 @@ class UtilisateurService {
       try {
         const utilisateur = await Utilisateur.findById(expediteurId);
         if (!utilisateur) {
-          throw new Error('Utilisateur non trouvé');
+          const error= new Error('Utilisateur non trouvé');
+          error.status = 404;
+          throw error;
         }
         return await utilisateur.transferToPerson(destinataireId,messageId);
       }  catch (error) {
@@ -161,7 +177,9 @@ class UtilisateurService {
       try {
         const utilisateur = await Utilisateur.findById(expediteurId);
         if (!utilisateur) {
-          throw new Error('Utilisateur non trouvé');
+          const error= new Error('Utilisateur non trouvé');
+          error.status = 404;
+          throw error;
         }
         return await utilisateur.transferToGroup(groupeId,messageId);
       }   catch (error) {
@@ -175,7 +193,9 @@ class UtilisateurService {
     try {
       const utilisateur = await Utilisateur.findById(utilisateurId);
       if (!utilisateur) {
-        throw new Error('Utilisateur non trouvé');
+        const error= new Error('Utilisateur non trouvé');
+        error.status = 404;
+        throw error;
       }
       return await utilisateur.addStory(contenu);
     }   catch (error) {
@@ -189,7 +209,9 @@ class UtilisateurService {
     try {
       const utilisateur = await Utilisateur.findById(utilisateurId);
       if (!utilisateur) {
-        throw new Error('Utilisateur non trouvé');
+        const error= new Error('Utilisateur non trouvé');
+        error.status = 404;
+        throw error;
       }
       return await utilisateur.deleteStory(storyId);
     }   catch (error) {
@@ -202,7 +224,9 @@ class UtilisateurService {
     try {
       const utilisateur = await Utilisateur.findById(utilisateurId);
       if (!utilisateur) {
-        throw new Error('Utilisateur non trouvé');
+        const error= new Error('Utilisateur non trouvé');
+        error.status = 404;
+        throw error;
       }
       return await utilisateur.voirStory(storyId);
     }   catch (error) {
@@ -214,7 +238,9 @@ class UtilisateurService {
     try {
       const user = await Utilisateur.findById(userId);
       if (!user) {
-        throw new Error('Utilisateur non trouvé.');
+        const error= new Error('Utilisateur non trouvé.');
+        error.status = 401;
+        throw error;
       }
       await user.changePassword(oldPassword, newPassword);
       return user;
@@ -227,7 +253,9 @@ class UtilisateurService {
     try {
       const user = await Utilisateur.findById(userId);
       if (!user) {
-        throw new Error('Utilisateur non trouvé.');
+        const error= new Error('Utilisateur non trouvé.');
+        error.status = 401;
+        throw error;
       }
       await user.changePhoto(newPhotoUrl,mimetype);
       return user;
@@ -240,7 +268,9 @@ class UtilisateurService {
     try {
       const user = await Utilisateur.findById(userId);
       if (!user) {
-        throw new Error('Utilisateur non trouvé.');
+        const error= new Error('Utilisateur non trouvé.');
+        error.status = 401;
+        throw error;
       }
       const result = await user.quitGroup(groupId);
       return result;
@@ -252,7 +282,9 @@ class UtilisateurService {
     try {
       const user = await Utilisateur.findById(userId);
       if (!user) {
-        throw new Error('Utilisateur non trouvé.');
+        const error= new Error('Utilisateur non trouvé.');
+        error.status = 401;
+        throw error;
       }
       const result = await user.supprimerGroupe(groupId);
       return result;
@@ -264,7 +296,9 @@ class UtilisateurService {
     try {
       const user = await Utilisateur.findById(userId);
       if (!user) {
-        throw new Error('Utilisateur non trouvé.');
+        const error= new Error('Utilisateur non trouvé.');
+        error.status = 401;
+        throw error;
       }
       const result = await user.updateGroup(groupId,data);
       return result;
@@ -277,7 +311,9 @@ class UtilisateurService {
     try {
       const user = await Utilisateur.findById(userId);
       if (!user) {
-        throw new Error('Utilisateur non trouvé.');
+        const error= new Error('Utilisateur non trouvé.');
+        error.status = 401;
+        throw error;
       }
       const result = await user.createGroup(groupe);
       return result;
@@ -290,7 +326,9 @@ class UtilisateurService {
     try {
       const user = await Utilisateur.findById(userId);
       if (!user) {
-        throw new Error('Utilisateur non trouvé.');
+        const error= new Error('Utilisateur non trouvé.');
+        error.status = 401;
+        throw error;
       }
       const result = await user.changePhotoGroup(groupId,photoPath);
       return result;
@@ -302,7 +340,9 @@ class UtilisateurService {
     try {
       const user = await Utilisateur.findById(userId);
       if (!user) {
-        throw new Error('Utilisateur non trouvé.');
+        const error= new Error('Utilisateur non trouvé.');
+        error.status = 401;
+        throw error;
       }
       const result = await user.ajouterAuGroupe(groupId,membre);
       return result;
@@ -314,7 +354,9 @@ class UtilisateurService {
     try {
       const user = await Utilisateur.findById(userId);
       if (!user) {
-        throw new Error('Utilisateur non trouvé.');
+        const error= new Error('Utilisateur non trouvé.');
+        error.status = 401;
+        throw error;
       }
       const result = await user.supprimerDuGroupe(groupId,membre);
       return result;
@@ -326,11 +368,33 @@ class UtilisateurService {
     try {
       const user = await Utilisateur.findById(userId);
       if (!user) {
-        throw new Error('Utilisateur non trouvé.');
+        const error= new Error('Utilisateur non trouvé.');
+        error.status = 401;
+        throw error;
       }
       const result = await user.deleteMessage(messageId);
       return result;
     } catch (error) {
+      throw error;
+    }
+  }
+  async searchUtilisateurs(parametre) {
+    try {
+      const regex = new RegExp(parametre, 'i'); // 'i' pour une recherche insensible à la casse
+      const utilisateurs = await Utilisateur.find({
+        $or: [
+          { nom: { $regex: regex } },
+          { email: { $regex: regex } }
+        ]
+      });
+      if (!utilisateurs) {
+        const error= new Error('Utilisateurs non trouvé.');
+        error.status = 404;
+        throw error;
+      }
+      return utilisateurs;
+    } catch (error) {
+      console.error('Erreur lors de la recherche des utilisateurs :', error);
       throw error;
     }
   }

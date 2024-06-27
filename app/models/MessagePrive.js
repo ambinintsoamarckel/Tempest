@@ -41,9 +41,11 @@ messagePriveSchema.post('save', async function(message) {
   }
 });
 
-messagePriveSchema.pre('findByIdAndDelete', async function(message) {
+messagePriveSchema.pre('deleteOne', async function(next) {
   try {
     // Retirer le message des messages envoyés de l'expéditeur
+    const Model = this.model;
+    const message =  await Model.findOne(this.getFilter());
     const expediteur = await mongoose.model('Utilisateur').findById(message.expediteur);
     expediteur.messagesPrivesEnvoyes.pull(message._id);
     await expediteur.save();
@@ -62,6 +64,7 @@ messagePriveSchema.pre('findByIdAndDelete', async function(message) {
     const destinataire = await mongoose.model('Utilisateur').findById(message.destinataire);
     destinataire.messagesPrivesRecus.pull(message._id);
     await destinataire.save();
+    next();
   } catch (error) {
     console.error('Erreur lors de la suppression des messages reçus et envoyés pour les messages privés :', error);
     throw error;

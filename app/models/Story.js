@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const cron = require('node-cron');
 const fs = require('fs');
+const path=require('path');
 const storySchema = new mongoose.Schema({
   utilisateur: {
     type: mongoose.Schema.Types.ObjectId,
@@ -42,10 +43,10 @@ const storySchema = new mongoose.Schema({
 // Middleware pour supprimer les fichiers associés avant de supprimer le document
 storySchema.pre('deleteOne', async function(next) {
   try {
-    const story = this;
-    console.log(story);
-    if (story.contenu && ['image', 'vidéo'].includes(story.contenu.type)) {
-      console.log('anaty condition');
+   
+    const Model = this.model;
+    const story =  await Model.findOne(this.getFilter());
+    if (story.contenu && ['image', 'video'].includes(story.contenu.type)) {
       const filePath = path.join(__dirname, '../../', story.contenu[story.contenu.type].split('3000/')[1]);
       fs.unlink(filePath, (err) => {
         if (err) {

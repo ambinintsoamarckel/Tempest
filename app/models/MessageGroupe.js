@@ -50,9 +50,11 @@ messageGroupeSchema.post('save', async function(message) {
   }
 });
 // Middleware pour la suppression de messages de groupe
-messageGroupeSchema.pre('findByIdAndDelete', async function(message) {
+messageGroupeSchema.pre('deleteOne', async function(next) {
   try {
     // Retirer le message des messages envoyés de l'expéditeur
+    const Model = this.model;
+    const message =  await Model.findOne(this.getFilter());
     const expediteur = await mongoose.model('Utilisateur').findById(message.expediteur);
     expediteur.messagesGroupesEnvoyes.pull(message._id);
     await expediteur.save();
@@ -76,6 +78,7 @@ messageGroupeSchema.pre('findByIdAndDelete', async function(message) {
         await utilisateur.save();
       }
     });
+    next();
   } catch (error) {
     console.error('Erreur lors de la suppression des messages reçus et envoyés pour les messages de groupe :', error);
     throw error;

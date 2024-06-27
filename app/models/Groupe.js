@@ -159,9 +159,10 @@ groupeSchema.methods.changePhoto = async function(newPhotoUrl) {
 };
 
 // Middleware to handle group deletion
-groupeSchema.pre('findByIdAndDelete', async function(groupe) {
+groupeSchema.pre('deleteOne', async function(next) {
   try {
-    // Remove the photo file if it exists
+    const Model = this.model;
+    const groupe =  await Model.findOne(this.getFilter());
     if (groupe.photo) {
       const oldPhotoUrl = groupe.photo;
       const relativeFilePath = oldPhotoUrl.split('3000/')[1];
@@ -193,6 +194,7 @@ groupeSchema.pre('findByIdAndDelete', async function(groupe) {
 
     // Delete the group's messages
     await mongoose.model('MessageGroupe').deleteMany({ _id: { $in: groupe.messages } });
+    next();
 
   } catch (error) {
     console.error('Erreur lors de la suppression du groupe :', error);

@@ -26,6 +26,8 @@ module.exports = (app) => {
   app.route('/utilisateurs')
     .post(utilisateurController.creerUtilisateur)
     .get(utilisateurController.VoirTousUtilisateur);
+  app.route('/utilisateurs/recherche/:valeur')
+    .get(utilisateurController.recherche);
 
   app.route('/utilisateurs/:id')
     .get(utilisateurController.recupererUtilisateur)
