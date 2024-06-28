@@ -50,14 +50,23 @@ messagePriveSchema.pre('deleteOne', async function(next) {
     expediteur.messagesPrivesEnvoyes.pull(message._id);
     await expediteur.save();
         // Supprimer les fichiers associés si nécessaire
-    if (message.contenu && ['image', 'audio', 'video', 'fichier'].includes(message.contenu.type)) {
-      const filePath = path.join(__dirname, '../../', message.contenu[message.contenu.type].split('3000/')[1]);
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
+        if (message.contenu && ['image', 'audio', 'video', 'fichier'].includes(message.contenu.type)) {
+          const filePath = path.join(__dirname, '../../', message.contenu[message.contenu.type].split('3000/')[1]);
+          const regex = new RegExp(message.contenu[message.contenu.type], 'i');
+          const query = {};
+          query[`contenu.${message.contenu.type}`] = { $regex: regex };
+          const reccurence = await mongoose.model('MessageAbstrait').find(query);
+          console.log(reccurence.length);
+    
+          if (reccurence.length == 1) {
+            fs.unlink(filePath, (err) => {
+              if (err) {
+                console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
+              }
+            });
+          }
         }
-      });
-    }
+    
     
 
     // Retirer le message des messages reçus du destinataire
