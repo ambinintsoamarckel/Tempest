@@ -18,7 +18,27 @@ class UtilisateurService {
     try {
     
       const utilisateur = await Utilisateur.findById(utilisateurId).populate('groupes');
-      return utilisateur;
+      const groups=[];
+      utilisateur.groupes.forEach(groupe => {
+        const group={
+          _id:groupe._id,
+          nom:groupe.nom,
+          description:groupe.description,
+          photo:groupe.photo,
+          createur:groupe.createur
+        }
+        groups.push(group);
+      })
+      
+      const user={
+        _id:utilisateur._id,
+        nom:utilisateur.nom,
+        email:utilisateur.email,
+        photo:utilisateur.photo,
+        stories:utilisateur.stories,
+        groupes:groups
+      };
+      return user;
     } catch (error) {
       console.error('Erreur lors de la création de l\'utilisateur :', error);
       throw error;
@@ -27,8 +47,32 @@ class UtilisateurService {
   async getAllUtilisateur() {
     try {
     
-      const utilisateur = await Utilisateur.find().populate('groupes');
-      return utilisateur;
+      const utilisateurs = await Utilisateur.find().populate('groupes');
+      const users=[];
+      utilisateurs.forEach(utilisateur => {
+        const groups=[];
+        utilisateur.groupes.forEach(groupe => {
+          const group={
+            _id:groupe._id,
+            nom:groupe.nom,
+            description:groupe.description,
+            photo:groupe.photo,
+            createur:groupe.createur
+          }
+          groups.push(group);
+        })
+        const user={
+          _id:utilisateur._id,
+          nom:utilisateur.nom,
+          email:utilisateur.email,
+          photo:utilisateur.photo,
+          stories:utilisateur.stories,
+          groupes:groups
+        };
+        users.push(user);
+      })
+      
+      return users;
     } catch (error) {
       console.error('Erreur lors de la création de l\'utilisateur :', error);
       throw error;
@@ -46,7 +90,15 @@ class UtilisateurService {
         error.status = 404;
         throw error;
       }
-      return utilisateur;
+      const user={
+        _id:utilisateur._id,
+        nom:utilisateur.nom,
+        email:utilisateur.email,
+        photo:utilisateur.photo,
+        stories:utilisateur.stories,
+        groupes:utilisateur.groupes
+      };
+      return user;
     } catch (error) {
       console.error('Erreur lors de la mise à jour de l\'utilisateur :', error);
       throw error;
