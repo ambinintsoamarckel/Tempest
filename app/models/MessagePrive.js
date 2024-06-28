@@ -56,7 +56,6 @@ messagePriveSchema.pre('deleteOne', async function(next) {
           const query = {};
           query[`contenu.${message.contenu.type}`] = { $regex: regex };
           const reccurence = await mongoose.model('MessageAbstrait').find(query);
-          console.log(reccurence.length);
     
           if (reccurence.length == 1) {
             fs.unlink(filePath, (err) => {
