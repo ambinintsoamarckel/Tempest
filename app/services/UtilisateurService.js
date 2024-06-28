@@ -438,13 +438,36 @@ class UtilisateurService {
           { nom: { $regex: regex } },
           { email: { $regex: regex } }
         ]
-      });
+      }).populate('groupes');
       if (!utilisateurs) {
         const error= new Error('Utilisateurs non trouvé.');
         error.status = 404;
         throw error;
-      }
-      return utilisateurs;
+      }  const users=[];
+      utilisateurs.forEach(utilisateur => {
+        const groups=[];
+        utilisateur.groupes.forEach(groupe => {
+          const group={
+            _id:groupe._id,
+            nom:groupe.nom,
+            description:groupe.description,
+            photo:groupe.photo,
+            createur:groupe.createur
+          }
+          groups.push(group);
+        })
+        const user={
+          _id:utilisateur._id,
+          nom:utilisateur.nom,
+          email:utilisateur.email,
+          photo:utilisateur.photo,
+          stories:utilisateur.stories,
+          groupes:groups
+        };
+        users.push(user);
+      })
+      
+      return users;
     } catch (error) {
       console.error('Erreur lors de la recherche des utilisateurs :', error);
       throw error;
