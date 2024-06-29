@@ -17,7 +17,7 @@ class UtilisateurService {
   async findUtilisateurById(utilisateurId) {
     try {
     
-      const utilisateur = await Utilisateur.findById(utilisateurId).populate('groupes');
+      const utilisateur = await Utilisateur.findById(utilisateurId).populate('groupes stories');
       const groups=[];
       utilisateur.groupes.forEach(groupe => {
         const group={
@@ -44,10 +44,41 @@ class UtilisateurService {
       throw error;
     }
   }
+  async findMe(utilisateurId) {
+    try {
+    
+      const utilisateur = await Utilisateur.findById(utilisateurId).populate('groupes stories archives');
+      const groups=[];
+      utilisateur.groupes.forEach(groupe => {
+        const group={
+          _id:groupe._id,
+          nom:groupe.nom,
+          description:groupe.description,
+          photo:groupe.photo,
+          createur:groupe.createur
+        }
+        groups.push(group);
+      })
+      
+      const user={
+        _id:utilisateur._id,
+        nom:utilisateur.nom,
+        email:utilisateur.email,
+        photo:utilisateur.photo,
+        stories:utilisateur.stories,
+        archives:utilisateur.archives,
+        groupes:groups
+      };
+      return user;
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'utilisateur :', error);
+      throw error;
+    }
+  }
   async getAllUtilisateur() {
     try {
     
-      const utilisateurs = await Utilisateur.find().populate('groupes');
+      const utilisateurs = await Utilisateur.find().populate('groupes stories');
       const users=[];
       utilisateurs.forEach(utilisateur => {
         const groups=[];

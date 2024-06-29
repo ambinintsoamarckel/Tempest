@@ -44,7 +44,7 @@ module.exports = {
 
   async recupererMonCompte(req, res) {
     try {
-      const utilisateur = await utilisateurService.findUtilisateurById(req.session.passport.user.id);
+      const utilisateur = await utilisateurService.findMe(req.session.passport.user.id);
       res.status(200).json(utilisateur);
     } catch (error) {
       console.error(error);

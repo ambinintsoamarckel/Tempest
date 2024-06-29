@@ -66,6 +66,10 @@ const utilisateurSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Story'
   }],
+  archives: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Story'
+  }],
   messagesPrivesEnvoyes: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'MessagePrive'
