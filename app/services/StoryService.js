@@ -24,23 +24,45 @@ class StoryService {
     }
   }
 
-  // Ajouter une vue à une story
-  async addView(storyId, utilisateurId) {
+  async getActiveStoriesGroupedByUser  () {
     try {
-      const story = await Story.findById(storyId);
-      if (!story) {
-        throw new Error('Story non trouvée');
-      }
-      if (!story.vues.includes(utilisateurId)) {
-        story.vues.push(utilisateurId);
-        await story.save();
-      }
-      return story;
+      const stories = await Story.find({ active: true })
+        .populate('utilisateur', '_id nom email') // Populate utilisateur avec les champs nécessaires
+        .sort({ dateCreation: -1 }) // Trie par date de création (du plus récent au moins récent)
+        .exec();
+  
+      // Grouper les stories par utilisateur
+      const groupedStories = stories.reduce((acc, story) => {
+        const userId = story.utilisateur._id.toString();
+        if (!acc[userId]) {
+          acc[userId] = {
+            utilisateur: {
+              _id: story.utilisateur._id,
+              nom: story.utilisateur.nom,
+              email: story.utilisateur.email,
+            },
+            stories: []
+          };
+        }
+        acc[userId].stories.push({
+          _id: story._id,
+          contenu: story.contenu,
+          dateCreation: story.dateCreation,
+          dateExpiration: story.dateExpiration,
+          vues: story.vues
+        });
+        return acc;
+      }, {});
+  
+      // Convertir l'objet en tableau
+      const result = Object.values(groupedStories);
+      return result;
     } catch (error) {
-      console.error('Erreur lors de l\'ajout de la vue à la story :', error);
+      console.error('Erreur lors de la récupération des stories groupées par utilisateur :', error);
       throw error;
     }
-  }
+  };
+  
 }
 
 module.exports = new StoryService();

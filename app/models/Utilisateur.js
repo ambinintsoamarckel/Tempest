@@ -760,7 +760,7 @@ utilisateurSchema.methods.voirStory =async function(storyId) {
   try {
     await this.UpdatePresence();
     const Story = mongoose.model('Story');
-    const story = await Story.findById(storyId).populate('utilisateur');
+    const story = await Story.findOne({ _id: storyId, active: true }).populate('utilisateur');
     if (!story) {
       const error= new Error('story non trouvé');
       error.status = 404;
