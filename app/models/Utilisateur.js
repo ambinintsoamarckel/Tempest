@@ -163,7 +163,7 @@ utilisateurSchema.methods.sendMessageToGroup = async function(groupeId, contenu)
       groupe: groupeId
     });
     await message.save();
-    return message;
+    return message.populate('groupe');
   } catch (error) {
     console.error('Erreur lors de l\'envoi du message au groupe :', error);
     throw error;

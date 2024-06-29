@@ -154,7 +154,7 @@ module.exports = {
       const messageData = prepareMessageData(req);
       const message = await utilisateurService.sendMessageToPerson(req.session.passport.user.id, req.params.contactId, messageData);
       
-      io.emit('message_envoye', message);
+      io.emit('message_envoye_personne', message.destinataire);
 
       res.status(201).json(message);
     } catch (error) {
@@ -167,7 +167,7 @@ module.exports = {
       const messageData = prepareMessageData(req);
       const message = await utilisateurService.sendMessageToGroup(req.session.passport.user.id, req.params.groupeId, messageData);
       
-      io.emit('message_envoye', message); 
+      io.emit('message_envoye_groupe', message.groupe.membres); 
       
       res.status(201).json(message);
     } catch (error) {
@@ -180,7 +180,7 @@ module.exports = {
 
       const message = await utilisateurService.transferToPerson(req.session.passport.user.id, req.params.contactId, req.params.messageId);
       
-      io.emit('message_transfere', message);
+      io.emit('message_envoye_personne', message.destinataire);
       
       res.status(201).json(message);
     } catch (error) {
@@ -193,7 +193,7 @@ module.exports = {
 
       const message = await utilisateurService.transferToGroup(req.session.passport.user.id, req.params.groupeId, req.params.messageId);
       
-      io.emit('message_transfere', message);
+      io.emit('message_envoye_groupe', message.groupe.membres);  
       
       res.status(201).json(message);
     } catch (error) {
@@ -432,7 +432,7 @@ module.exports = {
     try {
       const utilisateur=await utilisateurService.searchUtilisateurs(req.params.valeur);
             
-      io.emit('utilisateur_recherche', utilisateur);
+     // io.emit('utilisateur_recherche', utilisateur);
       
       res.status(200.).json(utilisateur);
     } catch (error) {
