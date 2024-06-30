@@ -34,6 +34,7 @@ class UtilisateurService {
         _id:utilisateur._id,
         nom:utilisateur.nom,
         email:utilisateur.email,
+        presence:utilisateur.presence,
         photo:utilisateur.photo,
         stories:utilisateur.stories,
         groupes:groups
@@ -65,6 +66,7 @@ class UtilisateurService {
         nom:utilisateur.nom,
         email:utilisateur.email,
         photo:utilisateur.photo,
+        presence:utilisateur.presence,
         stories:utilisateur.stories,
         archives:utilisateur.archives,
         groupes:groups
@@ -95,6 +97,7 @@ class UtilisateurService {
         const user={
           _id:utilisateur._id,
           nom:utilisateur.nom,
+          presence:utilisateur.presence,
           email:utilisateur.email,
           photo:utilisateur.photo,
           stories:utilisateur.stories,
@@ -490,6 +493,7 @@ class UtilisateurService {
         const user={
           _id:utilisateur._id,
           nom:utilisateur.nom,
+          presence:utilisateur.presence,
           email:utilisateur.email,
           photo:utilisateur.photo,
           stories:utilisateur.stories,
