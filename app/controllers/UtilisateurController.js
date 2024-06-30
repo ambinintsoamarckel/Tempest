@@ -167,7 +167,7 @@ module.exports = {
       const messageData = prepareMessageData(req);
       const message = await utilisateurService.sendMessageToGroup(req.session.passport.user.id, req.params.groupeId, messageData);
       
-      io.emit('message_envoye_groupe', message.groupe.membres); 
+      
       
       res.status(201).json(message);
     } catch (error) {
@@ -322,10 +322,7 @@ module.exports = {
   },
   async voirStory(req, res) {
     try {
-     const story= await utilisateurService.voirStory(req.session.passport.user.id, req.params.id);
-      
-     io.emit('story_vue', story);
-     
+     const story= await utilisateurService.voirStory(req.session.passport.user.id, req.params.id);      
      res.status(200).json(story);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });

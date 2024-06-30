@@ -2,6 +2,14 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const path=require('path');
 const fs=require('fs');
+
+
+/*socket
+const { getIo } = require('../../config/socketConfig');
+
+const io = getIo();*/
+
+
 // Middleware pour bloquer les modifications des tableaux relationnels
 const blockRelationArraysUpdates = async function(next) {
   const update = this.getUpdate();
@@ -167,7 +175,12 @@ utilisateurSchema.methods.sendMessageToGroup = async function(groupeId, contenu)
       groupe: groupeId
     });
     await message.save();
+
+    io.emit('message_envoye_groupe', message.groupe.membres); 
+    
     return message.populate('groupe');
+
+    
   } catch (error) {
     console.error('Erreur lors de l\'envoi du message au groupe :', error);
     throw error;
@@ -198,6 +211,9 @@ utilisateurSchema.methods.findDiscussionWithPerson = async function(contactId) {
         message.lu = true;
         message.dateLecture = Date.now();
         await message.save();
+
+        io.emit('message_lu_personne', message.expediteur);
+
       }
     });
     // Exemple de données simplifiées pour répondre uniquement avec les informations essentielles
@@ -256,6 +272,8 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
       if (!isUserMember&&!ExpId.equals(this._id)) {
         message.luPar.push({ utilisateur: this._id, dateLecture: Date.now() });
         await message.save();
+
+       io.emit('message_lu_groupe', message.groupe.membres); 
       }
     }
     await groupe.populate('membres');
@@ -805,6 +823,8 @@ utilisateurSchema.methods.voirStory =async function(storyId) {
     if (!dejavu&&!story.utilisateur._id.equals(this._id)) {
             story.vues.push(this._id );
             await story.save();
+
+            io.emit('story_vue', story.utilisateur._id);
           }
 
     return story;
