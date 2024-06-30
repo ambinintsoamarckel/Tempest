@@ -31,6 +31,18 @@ module.exports = {
     }
   },
 
+  async getAllStory(req, res) {
+    try {
+      const story = await storyService.getActiveStoriesGroupedByUser();
+      
+      io.emit('story_recuperee', story); 
+      
+      res.status(200).json(story);
+    } catch (error) {
+      res.status(404).json({ message: error.message });
+    }
+  },
+
   async supprimerStory(req, res) {
     try {
       await storyService.deleteStory(req.params.id);

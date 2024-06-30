@@ -90,6 +90,7 @@ module.exports = (app) => {
 
   // Routes pour les stories
   app.route('/stories')
+    .get(protectedRoutes, storyController.getAllStory)
     .post(protectedRoutes, storyController.creerStory);
 
   app.route('/stories/:id')

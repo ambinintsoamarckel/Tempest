@@ -66,6 +66,10 @@ const utilisateurSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Story'
   }],
+  archives: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Story'
+  }],
   messagesPrivesEnvoyes: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'MessagePrive'
@@ -353,11 +357,13 @@ utilisateurSchema.methods.findLastConversations = async function() {
       const isEnvoye = message.expediteur._id.equals(this._id);
       const contactId = isEnvoye ? message.destinataire._id : message.expediteur._id;
       const contactType = isEnvoye ? 'utilisateur' : 'utilisateur';
+      const contactPresence= isEnvoye ? message.destinataire.presence :  message.expediteur.presence;
       const contactNom = isEnvoye ? message.destinataire.nom : message.expediteur.nom;
       const contactPhoto = isEnvoye ? message.destinataire.photo : message.expediteur.photo;
       const dernierMessage = {
         _id: message._id,
         contenu: message.contenu,
+        expediteur:message.expediteur._id,
         lu: message.lu,
         dateEnvoi: message.dateEnvoi,
         dateLecture: message.dateLecture
@@ -369,6 +375,7 @@ utilisateurSchema.methods.findLastConversations = async function() {
             _id: contactId,
             type: contactType,
             nom: contactNom,
+            presence: contactPresence,
             photo: contactPhoto
           },
           dernierMessage
@@ -401,6 +408,7 @@ utilisateurSchema.methods.findLastConversations = async function() {
           dernierMessage: dernierMessage ? {
             _id: dernierMessage._id,
             contenu: dernierMessage.contenu,
+            expediteur:dernierMessage.expediteur._id,
             luPar: dernierMessage.luPar,
             dateEnvoi: dernierMessage.dateEnvoi,
             notification: dernierMessage.notification
@@ -756,7 +764,7 @@ utilisateurSchema.methods.voirStory =async function(storyId) {
   try {
     await this.UpdatePresence();
     const Story = mongoose.model('Story');
-    const story = await Story.findById(storyId).populate('utilisateur');
+    const story = await Story.findOne({ _id: storyId, active: true }).populate('utilisateur');
     if (!story) {
       const error= new Error('story non trouvé');
       error.status = 404;
