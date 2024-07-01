@@ -248,7 +248,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
     }
 
     const messages = await mongoose.model('MessageGroupe').find({ groupe: groupeId }).sort({ dateEnvoi: 1 }).populate('expediteur');
-
+    
     // Marquer tous les messages non lus comme lus pour l'utilisateur actuel
     for (const message of messages) {
       const isUserMember = message.luPar.some(entry => entry.utilisateur.equals(this._id));
@@ -258,10 +258,39 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
         await message.save();
       }
     }
+    await groupe.populate('membres');
+    const membres=[];
+      groupe.membres.forEach(utilisateur => {
+        const user={
+          _id:utilisateur._id,
+          nom:utilisateur.nom,
+          email:utilisateur.email,
+          photo:utilisateur.photo,
+          stories:utilisateur.stories,
+          
+          groupes:utilisateur.groupes
+        };
+        membres.push(user);
+      })
+      const group={
+        _id:groupe._id,
+        nom:groupe.nom,
+        description:groupe.description,
+        photo:groupe.photo,
+        createur:{_id:groupe.createur._id,
+                  nom:groupe.createur.nom,
+                  email:groupe.createur.email,
+                  photo:groupe.createur.photo,
+                  stories:groupe.createur.stories
+        },
+        membres:membres
+      }
+    
 
     const messagesSimplifies = messages.map(message => ({
       _id: message._id,
       contenu:message.contenu,
+      groupe:group,
       expediteur: {
         _id: message.expediteur._id,
         nom: message.expediteur.nom,
@@ -269,6 +298,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
         photo: message.expediteur.photo
       },
       notification: message.notification,
+      dateEnvoi: message.dateEnvoi,
       luPar: message.luPar
     }));
 
