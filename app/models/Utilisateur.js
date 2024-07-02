@@ -4,10 +4,10 @@ const path=require('path');
 const fs=require('fs');
 
 
-/*socket
+/* socket */
 const { getIo } = require('../../config/socketConfig');
 
-const io = getIo();*/
+//const io = getIo();
 
 
 // Middleware pour bloquer les modifications des tableaux relationnels
@@ -176,6 +176,7 @@ utilisateurSchema.methods.sendMessageToGroup = async function(groupeId, contenu)
     });
     await message.save();
 
+    const io = getIo();
     io.emit('message_envoye_groupe', message.groupe.membres); 
     
     return message.populate('groupe');
@@ -212,6 +213,7 @@ utilisateurSchema.methods.findDiscussionWithPerson = async function(contactId) {
         message.dateLecture = Date.now();
         await message.save();
 
+        const io = getIo();
         io.emit('message_lu_personne', message.expediteur);
 
       }
@@ -273,6 +275,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
         message.luPar.push({ utilisateur: this._id, dateLecture: Date.now() });
         await message.save();
 
+        const io = getIo();
        io.emit('message_lu_groupe', message.groupe.membres); 
       }
     }
@@ -824,6 +827,7 @@ utilisateurSchema.methods.voirStory =async function(storyId) {
             story.vues.push(this._id );
             await story.save();
 
+            const io = getIo();
             io.emit('story_vue', story.utilisateur._id);
           }
 

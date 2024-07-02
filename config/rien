@@ -1,0 +1,19 @@
+// server.js ou app.js
+const express = require('express');
+const http = require('http');
+const { initializeSocket } = require('./config/socketConfig');
+
+const app = express();
+const server = http.createServer(app);
+
+// Initialiser socket.io avec le serveur
+initializeSocket(server);
+
+// Vos autres configurations express
+// ...
+
+// Démarrer le serveur
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Serveur démarré sur le port ${PORT}`);
+});
