@@ -77,38 +77,39 @@ class UtilisateurService {
       throw error;
     }
   }
-  async getAllUtilisateur() {
+  async getAllUtilisateur(sessionUserId) {
     try {
-    
-      const utilisateurs = await Utilisateur.find().populate('groupes stories');
-      const users=[];
+      const utilisateurs = await Utilisateur.find({ _id: { $ne: sessionUserId } }).populate('groupes stories');
+      const users = [];
+  
       utilisateurs.forEach(utilisateur => {
-        const groups=[];
+        const groups = [];
         utilisateur.groupes.forEach(groupe => {
-          const group={
-            _id:groupe._id,
-            nom:groupe.nom,
-            description:groupe.description,
-            photo:groupe.photo,
-            createur:groupe.createur
-          }
+          const group = {
+            _id: groupe._id,
+            nom: groupe.nom,
+            description: groupe.description,
+            photo: groupe.photo,
+            createur: groupe.createur
+          };
           groups.push(group);
-        })
-        const user={
-          _id:utilisateur._id,
-          nom:utilisateur.nom,
-          presence:utilisateur.presence,
-          email:utilisateur.email,
-          photo:utilisateur.photo,
-          stories:utilisateur.stories,
-          groupes:groups
+        });
+  
+        const user = {
+          _id: utilisateur._id,
+          nom: utilisateur.nom,
+          presence: utilisateur.presence,
+          email: utilisateur.email,
+          photo: utilisateur.photo,
+          stories: utilisateur.stories,
+          groupes: groups
         };
         users.push(user);
-      })
-      
+      });
+  
       return users;
     } catch (error) {
-      console.error('Erreur lors de la création de l\'utilisateur :', error);
+      console.error('Erreur lors de la récupération des utilisateurs :', error);
       throw error;
     }
   }
@@ -464,44 +465,49 @@ class UtilisateurService {
       throw error;
     }
   }
-  async searchUtilisateurs(parametre) {
+  async searchUtilisateurs(parametre, sessionUserId) {
     try {
       const regex = new RegExp(parametre, 'i'); // 'i' pour une recherche insensible à la casse
       const utilisateurs = await Utilisateur.find({
+        _id: { $ne: sessionUserId }, // Exclure l'utilisateur en session
         $or: [
           { nom: { $regex: regex } },
           { email: { $regex: regex } }
         ]
-      }).populate('groupes');
+      }).populate('groupes stories'); // Ajout de 'stories' à la population si nécessaire
+  
       if (!utilisateurs) {
-        const error= new Error('Utilisateurs non trouvé.');
+        const error = new Error('Utilisateurs non trouvés.');
         error.status = 404;
         throw error;
-      }  const users=[];
+      }
+  
+      const users = [];
       utilisateurs.forEach(utilisateur => {
-        const groups=[];
+        const groups = [];
         utilisateur.groupes.forEach(groupe => {
-          const group={
-            _id:groupe._id,
-            nom:groupe.nom,
-            description:groupe.description,
-            photo:groupe.photo,
-            createur:groupe.createur
-          }
+          const group = {
+            _id: groupe._id,
+            nom: groupe.nom,
+            description: groupe.description,
+            photo: groupe.photo,
+            createur: groupe.createur
+          };
           groups.push(group);
-        })
-        const user={
-          _id:utilisateur._id,
-          nom:utilisateur.nom,
-          presence:utilisateur.presence,
-          email:utilisateur.email,
-          photo:utilisateur.photo,
-          stories:utilisateur.stories,
-          groupes:groups
+        });
+  
+        const user = {
+          _id: utilisateur._id,
+          nom: utilisateur.nom,
+          presence: utilisateur.presence,
+          email: utilisateur.email,
+          photo: utilisateur.photo,
+          stories: utilisateur.stories,
+          groupes: groups
         };
         users.push(user);
-      })
-      
+      });
+  
       return users;
     } catch (error) {
       console.error('Erreur lors de la recherche des utilisateurs :', error);

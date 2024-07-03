@@ -42,6 +42,7 @@ function prepareMessageData(req) {
         [fileType]: fileUrl
       }
     };
+    console.log('filetype dadanlah ',req.file.mimetype);
   } else if (req.body.texte) {
     messageData = {
       contenu: {

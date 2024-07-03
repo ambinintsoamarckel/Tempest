@@ -47,6 +47,7 @@ passport.deserializeUser(async function(user, cb) {
 
 // Route pour le login
 router.post('/login', (req, res, next) => {
+  console.log('login eto');
   passport.authenticate('local', (err, user, info) => {
     if (err) { return next(err); }
     if (!user) { return res.status(401).json(info); }
