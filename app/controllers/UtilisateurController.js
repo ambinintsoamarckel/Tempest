@@ -25,7 +25,7 @@ module.exports = {
 
   async VoirTousUtilisateur(req, res) {
     try {
-      const utilisateurs = await utilisateurService.getAllUtilisateur();
+      const utilisateurs = await utilisateurService.getAllUtilisateur(req.session.passport.user.id);
       res.status(200).json(utilisateurs);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -430,7 +430,7 @@ module.exports = {
   },
   async recherche(req, res) {
     try {
-      const utilisateur=await utilisateurService.searchUtilisateurs(req.params.valeur);
+      const utilisateur=await utilisateurService.searchUtilisateurs(req.params.valeur,req.session.passport.user.id);
             
      // io.emit('utilisateur_recherche', utilisateur);
       
