@@ -148,6 +148,10 @@ utilisateurSchema.methods.sendMessageToPerson = async function(destinataireId, c
     await destinataire.save();
     this.messagesPrivesEnvoyes.push(message._id);
     await this.save();
+
+    const io = getIo();
+    io.emit('message_envoye_personne', message);
+
     return message;
   } catch (error) {
     console.error('Erreur lors de l\'envoi du message privé :', error);
@@ -912,6 +916,10 @@ utilisateurSchema.methods.transferToPerson = async function( destinataireId,orig
 
     // Envoie le message à la personne spécifiée et récupère le message transféré
     const transferredMessage = await this.sendMessageToPerson(destinataireId, contenu);
+
+    const io = getIo();
+    io.emit('message_envoye_personne', message.destinataire);
+
     return transferredMessage;
   } catch (error) {
     console.error('Erreur lors du transfert du message à la personne :', error);
@@ -978,6 +986,10 @@ utilisateurSchema.methods.transferToGroup = async function( groupeId,originalMes
 
     // Envoie le message au groupe spécifié et récupère le message transféré
     const transferredMessage = await this.sendMessageToGroup(groupeId, contenu);
+
+    const io = getIo();
+    io.emit('message_envoye_groupe', message.groupe.membres);  
+
     return transferredMessage;
   } catch (error) {
     console.error('Erreur lors du transfert du message au groupe :', error);

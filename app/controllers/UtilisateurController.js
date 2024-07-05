@@ -153,9 +153,6 @@ module.exports = {
     try {
       const messageData = prepareMessageData(req);
       const message = await utilisateurService.sendMessageToPerson(req.session.passport.user.id, req.params.contactId, messageData);
-      
-      io.emit('message_envoye_personne', message.destinataire);
-
       res.status(201).json(message);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -166,9 +163,6 @@ module.exports = {
     try {
       const messageData = prepareMessageData(req);
       const message = await utilisateurService.sendMessageToGroup(req.session.passport.user.id, req.params.groupeId, messageData);
-      
-      
-      
       res.status(201).json(message);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -179,9 +173,6 @@ module.exports = {
     try {
 
       const message = await utilisateurService.transferToPerson(req.session.passport.user.id, req.params.contactId, req.params.messageId);
-      
-      io.emit('message_envoye_personne', message.destinataire);
-      
       res.status(201).json(message);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -192,9 +183,6 @@ module.exports = {
     try {
 
       const message = await utilisateurService.transferToGroup(req.session.passport.user.id, req.params.groupeId, req.params.messageId);
-      
-      io.emit('message_envoye_groupe', message.groupe.membres);  
-      
       res.status(201).json(message);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
