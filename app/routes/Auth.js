@@ -6,7 +6,8 @@ const Utilisateur = require('../models/Utilisateur');
 const router = express.Router();
 const UtilisateurService= require('../services/UtilisateurService');
 const {generateCookie}=require('../../config/utils');
-const {getIo}=require('../../config/socketConfig')
+const {getIo}=require('../../config/socketConfig');
+const { default: mongoose } = require('mongoose');
 
 passport.use(new LocalStrategy(
   async function verify(username, password, cb) {
@@ -73,9 +74,8 @@ router.post('/login', (req, res, next) => {
 
 // Route pour le logout
 router.post('/logout', async (req, res) => {
-  user= await UtilisateurService.findUtilisateurById(req.user.id);
-  user.presence = 'inactif';
-  user.save().catch(error => res.status(500).json({ message: 'Presence update failed' }));
+  user= await mongoose.model('Utilisateur').findById(req.user.id);
+  await user.setInactif().catch(error => res.status(500).json({ message: 'Presence update failed'+error }));
   req.logout((err) => {
     if (err) { return res.status(500).json({ message: 'Logout failed' }); }
 

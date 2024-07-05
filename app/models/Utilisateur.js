@@ -144,6 +144,7 @@ utilisateurSchema.methods.sendMessageToPerson = async function(destinataireId, c
       destinataire: destinataireId
     });
     await message.save();
+    await message.populate('expediteur destinataire');
     destinataire.messagesPrivesRecus.push(message._id);
     await destinataire.save();
     this.messagesPrivesEnvoyes.push(message._id);
