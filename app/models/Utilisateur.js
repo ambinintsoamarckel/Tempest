@@ -7,7 +7,7 @@ const fs=require('fs');
 /* socket */
 const { getIo } = require('../../config/socketConfig');
 
-//const io = getIo();
+//const 0 = getIo();
 
 
 // Middleware pour bloquer les modifications des tableaux relationnels
@@ -182,7 +182,7 @@ utilisateurSchema.methods.sendMessageToGroup = async function(groupeId, contenu)
     await message.save();
 
     const io = getIo();
-    io.emit('message_envoye_groupe', message.groupe.membres); 
+    io.emit('message_envoye_groupe', message); 
     
     return message.populate('groupe');
 
@@ -918,9 +918,6 @@ utilisateurSchema.methods.transferToPerson = async function( destinataireId,orig
     // Envoie le message à la personne spécifiée et récupère le message transféré
     const transferredMessage = await this.sendMessageToPerson(destinataireId, contenu);
 
-    const io = getIo();
-    io.emit('message_envoye_personne', message.destinataire);
-
     return transferredMessage;
   } catch (error) {
     console.error('Erreur lors du transfert du message à la personne :', error);
@@ -988,8 +985,7 @@ utilisateurSchema.methods.transferToGroup = async function( groupeId,originalMes
     // Envoie le message au groupe spécifié et récupère le message transféré
     const transferredMessage = await this.sendMessageToGroup(groupeId, contenu);
 
-    const io = getIo();
-    io.emit('message_envoye_groupe', message.groupe.membres);  
+ 
 
     return transferredMessage;
   } catch (error) {

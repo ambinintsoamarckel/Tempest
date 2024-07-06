@@ -153,7 +153,7 @@ module.exports = {
     try {
       const messageData = prepareMessageData(req);
       const message = await utilisateurService.sendMessageToPerson(req.session.passport.user.id, req.params.contactId, messageData);
-      res.status(201).json(message);
+      res.status(201).json(message);  
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
     }
