@@ -180,11 +180,55 @@ utilisateurSchema.methods.sendMessageToGroup = async function(groupeId, contenu)
       groupe: groupeId
     });
     await message.save();
+    await message.populate('expediteur groupe');
+    await groupe.populate('membres');
+    const membres=[];
+      groupe.membres.forEach(utilisateur => {
+        const user={
+          _id:utilisateur._id,
+          nom:utilisateur.nom,
+          email:utilisateur.email,
+          photo:utilisateur.photo,
+          stories:utilisateur.stories,
+          
+          groupes:utilisateur.groupes
+        };
+        membres.push(user);
+      })
+      const group={
+        _id:groupe._id,
+        nom:groupe.nom,
+        description:groupe.description,
+        photo:groupe.photo,
+        createur:{_id:groupe.createur._id,
+                  nom:groupe.createur.nom,
+                  email:groupe.createur.email,
+                  photo:groupe.createur.photo,
+                  stories:groupe.createur.stories
+        },
+        membres:membres
+      }
+    
+
+    const messagesSimplifies ={
+      _id: message._id,
+      contenu:message.contenu,
+      groupe:group,
+      expediteur: {
+        _id: message.expediteur._id,
+        nom: message.expediteur.nom,
+        email: message.expediteur.email,
+        photo: message.expediteur.photo
+      },
+      notification: message.notification,
+      dateEnvoi: message.dateEnvoi,
+      luPar: message.luPar
+    };
 
     const io = getIo();
-    io.emit('message_envoye_groupe', message); 
+    io.emit('message_envoye_groupe', messagesSimplifies); 
     
-    return message.populate('groupe');
+    return message;
 
     
   } catch (error) {
