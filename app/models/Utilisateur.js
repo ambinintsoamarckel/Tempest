@@ -263,7 +263,7 @@ utilisateurSchema.methods.findDiscussionWithPerson = async function(contactId) {
         await message.save();
 
         const io = getIo();
-        io.emit('message_lu_personne', message.expediteur);
+        io.emit('message_lu_personne', {expediteur:message.expediteur._id,destinataire:message.destinataire._id});
 
       }
     });
@@ -314,7 +314,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
       throw error;
     }
 
-    const messages = await mongoose.model('MessageGroupe').find({ groupe: groupeId }).sort({ dateEnvoi: 1 }).populate('expediteur');
+    const messages = await mongoose.model('MessageGroupe').find({ groupe: groupeId }).sort({ dateEnvoi: 1 }).populate('expediteur groupe');
     
     // Marquer tous les messages non lus comme lus pour l'utilisateur actuel
     for (const message of messages) {
@@ -325,7 +325,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
         await message.save();
 
         const io = getIo();
-       io.emit('message_lu_groupe', message.groupe.membres); 
+       io.emit('message_lu_groupe', {groupe:message.groupe._id,membres:message.groupe.membres,vu:this._id}); 
       }
     }
     await groupe.populate('membres');
@@ -443,27 +443,25 @@ utilisateurSchema.methods.findLastConversations = async function() {
     await this.UpdatePresence();
     const lastConversations = [];
 
-    // Récupérer les messages privés envoyés et reçus par l'utilisateur
+    // Récupérer les messages privés envoyés et reçus par l'utilisateur en une seule requête
     const MessagePrive = mongoose.model('MessagePrive');
-    const messagesEnvoyes = await MessagePrive.find({ expediteur: this._id }).populate('destinataire').sort({ dateEnvoi: -1 });
-    const messagesRecus = await MessagePrive.find({ destinataire: this._id }).populate('expediteur').sort({ dateEnvoi: -1 });
+    const privateMessages = await MessagePrive.find({
+      $or: [
+        { expediteur: this._id },
+        { destinataire: this._id }
+      ]
+    }).populate('expediteur destinataire').sort({ dateEnvoi: -1 });
 
-    // Combiner et trier les messages privés par date d'envoi en ordre décroissant
-    const privateMessages = [...messagesEnvoyes, ...messagesRecus].sort((a, b) => b.dateEnvoi - a.dateEnvoi);
-
-    // Parcourir les messages privés pour identifier les contacts uniques et les derniers messages échangés
+    // Utiliser Map pour stocker les contacts uniques et leurs derniers messages
     const privateContactsMap = new Map();
     privateMessages.forEach(message => {
       const isEnvoye = message.expediteur._id.equals(this._id);
       const contactId = isEnvoye ? message.destinataire._id : message.expediteur._id;
-      const contactType = isEnvoye ? 'utilisateur' : 'utilisateur';
-      const contactPresence= isEnvoye ? message.destinataire.presence :  message.expediteur.presence;
-      const contactNom = isEnvoye ? message.destinataire.nom : message.expediteur.nom;
-      const contactPhoto = isEnvoye ? message.destinataire.photo : message.expediteur.photo;
+      const contact = isEnvoye ? message.destinataire : message.expediteur;
       const dernierMessage = {
         _id: message._id,
         contenu: message.contenu,
-        expediteur:message.expediteur._id,
+        expediteur: message.expediteur._id,
         lu: message.lu,
         dateEnvoi: message.dateEnvoi,
         dateLecture: message.dateLecture
@@ -472,11 +470,11 @@ utilisateurSchema.methods.findLastConversations = async function() {
       if (!privateContactsMap.has(contactId.toString())) {
         privateContactsMap.set(contactId.toString(), {
           contact: {
-            _id: contactId,
-            type: contactType,
-            nom: contactNom,
-            presence: contactPresence,
-            photo: contactPhoto
+            _id: contact._id,
+            type: 'utilisateur',
+            nom: contact.nom,
+            presence: contact.presence,
+            photo: contact.photo
           },
           dernierMessage
         });
@@ -496,8 +494,8 @@ utilisateurSchema.methods.findLastConversations = async function() {
     // Récupérer les messages de groupe pour chaque groupe
     const MessageGroupe = mongoose.model('MessageGroupe');
     const groupMessagesPromises = groupes.map(async groupe => {
-      if (groupe.messages.length > 0) {
-        const dernierMessage = await MessageGroupe.findOne({ groupe: groupe._id }).sort({ dateEnvoi: -1 }).populate('expediteur');
+      const dernierMessage = await MessageGroupe.findOne({ groupe: groupe._id }).sort({ dateEnvoi: -1 }).populate('expediteur');
+      if (dernierMessage) {
         return {
           contact: {
             _id: groupe._id,
@@ -505,14 +503,14 @@ utilisateurSchema.methods.findLastConversations = async function() {
             nom: groupe.nom,
             photo: groupe.photo
           },
-          dernierMessage: dernierMessage ? {
+          dernierMessage: {
             _id: dernierMessage._id,
             contenu: dernierMessage.contenu,
-            expediteur:dernierMessage.expediteur._id,
+            expediteur: dernierMessage.expediteur._id,
             luPar: dernierMessage.luPar,
             dateEnvoi: dernierMessage.dateEnvoi,
             notification: dernierMessage.notification
-          } : null
+          }
         };
       }
     });
@@ -529,13 +527,13 @@ utilisateurSchema.methods.findLastConversations = async function() {
     // Trier toutes les conversations par date de dernier message en ordre décroissant
     lastConversations.sort((a, b) => b.dernierMessage.dateEnvoi - a.dernierMessage.dateEnvoi);
 
-
     return lastConversations;
   } catch (error) {
     console.error('Erreur lors de la récupération des dernières conversations :', error);
     throw error;
   }
 };
+
 utilisateurSchema.methods.changePassword = async function(oldPassword, newPassword) {
   try {
     await this.UpdatePresence();

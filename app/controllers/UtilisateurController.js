@@ -31,7 +31,14 @@ module.exports = {
       res.status(error.status||500).json({ message: error.message });
     }
   },
-
+  async getUsers(req, res) {
+    try {
+      const utilisateurs = await utilisateurService.getAllUser();
+      res.status(200).json(utilisateurs);
+    } catch (error) {
+      res.status(error.status||500).json({ message: error.message });
+    }
+  },
   async recupererUtilisateur(req, res) {
     try {
       const utilisateur = await utilisateurService.findUtilisateurById(req.params.id);

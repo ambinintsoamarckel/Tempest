@@ -26,6 +26,8 @@ module.exports = (app) => {
   app.route('/utilisateurs')
     .post(utilisateurController.creerUtilisateur)
     .get(utilisateurController.VoirTousUtilisateur);
+  app.route('/users')
+    .get(utilisateurController.getUsers);
   app.route('/utilisateurs/recherche/:valeur')
     .get(utilisateurController.recherche);
 
@@ -96,6 +98,8 @@ module.exports = (app) => {
   app.route('/stories/:id')
     .get(protectedRoutes, utilisateurController.voirStory)
     .delete(protectedRoutes, utilisateurController.supprimerStory);
+  app.route('/story/:userid')
+    .get(protectedRoutes, storyController.getStoryById);
 
   // Route pour récupérer les dernières conversations
   app.route('/dernierConversation')
