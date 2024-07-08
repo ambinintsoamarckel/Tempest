@@ -31,7 +31,14 @@ module.exports = {
       res.status(error.status||500).json({ message: error.message });
     }
   },
-
+  async getUsers(req, res) {
+    try {
+      const utilisateurs = await utilisateurService.getAllUser();
+      res.status(200).json(utilisateurs);
+    } catch (error) {
+      res.status(error.status||500).json({ message: error.message });
+    }
+  },
   async recupererUtilisateur(req, res) {
     try {
       const utilisateur = await utilisateurService.findUtilisateurById(req.params.id);
@@ -153,10 +160,7 @@ module.exports = {
     try {
       const messageData = prepareMessageData(req);
       const message = await utilisateurService.sendMessageToPerson(req.session.passport.user.id, req.params.contactId, messageData);
-      
-      io.emit('message_envoye_personne', message.destinataire);
-
-      res.status(201).json(message);
+      res.status(201).json(message);  
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
     }
@@ -166,9 +170,6 @@ module.exports = {
     try {
       const messageData = prepareMessageData(req);
       const message = await utilisateurService.sendMessageToGroup(req.session.passport.user.id, req.params.groupeId, messageData);
-      
-      io.emit('message_envoye_groupe', message.groupe.membres); 
-      
       res.status(201).json(message);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -179,9 +180,6 @@ module.exports = {
     try {
 
       const message = await utilisateurService.transferToPerson(req.session.passport.user.id, req.params.contactId, req.params.messageId);
-      
-      io.emit('message_envoye_personne', message.destinataire);
-      
       res.status(201).json(message);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -192,9 +190,6 @@ module.exports = {
     try {
 
       const message = await utilisateurService.transferToGroup(req.session.passport.user.id, req.params.groupeId, req.params.messageId);
-      
-      io.emit('message_envoye_groupe', message.groupe.membres);  
-      
       res.status(201).json(message);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -322,10 +317,7 @@ module.exports = {
   },
   async voirStory(req, res) {
     try {
-     const story= await utilisateurService.voirStory(req.session.passport.user.id, req.params.id);
-      
-     io.emit('story_vue', story);
-     
+     const story= await utilisateurService.voirStory(req.session.passport.user.id, req.params.id);      
      res.status(200).json(story);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
