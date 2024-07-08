@@ -27,7 +27,7 @@ class StoryService {
   async getActiveStoriesGroupedByUser  () {
     try {
       const stories = await Story.find({ active: true })
-        .populate('utilisateur', '_id nom email photo') // Populate utilisateur avec les champs nécessaires
+        .populate('utilisateur', '_id nom email') // Populate utilisateur avec les champs nécessaires
         .sort({ dateCreation: -1 }) // Trie par date de création (du plus récent au moins récent)
         .exec();
   
@@ -40,7 +40,6 @@ class StoryService {
               _id: story.utilisateur._id,
               nom: story.utilisateur.nom,
               email: story.utilisateur.email,
-              photo: story.utilisateur.photo,
             },
             stories: []
           };
@@ -63,42 +62,6 @@ class StoryService {
       throw error;
     }
   };
-  async  getActiveStoriesByUser(userId) {
-    try {
-      const stories = await Story.find({ active: true, utilisateur: userId })
-        .populate('utilisateur', '_id nom email photo') // Populate utilisateur avec les champs nécessaires
-        .sort({ dateCreation: -1 }) // Trie par date de création (du plus récent au moins récent)
-        .exec();
-  
-      if (stories.length === 0) {
-        return null;
-      }
-  
-      const utilisateur = {
-        _id: stories[0].utilisateur._id,
-        nom: stories[0].utilisateur.nom,
-        email: stories[0].utilisateur.email,
-        photo: stories[0].utilisateur.photo,
-      };
-  
-      const userStories = stories.map(story => ({
-        _id: story._id,
-        contenu: story.contenu,
-        dateCreation: story.dateCreation,
-        dateExpiration: story.dateExpiration,
-        vues: story.vues,
-      }));
-  
-      return {
-        utilisateur,
-        stories: userStories,
-      };
-    } catch (error) {
-      console.error('Erreur lors de la récupération des stories pour un utilisateur :', error);
-      throw error;
-    }
-  }
-  
   
 }
 
