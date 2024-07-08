@@ -91,7 +91,7 @@ class UtilisateurService {
       utilisateurs.forEach(utilisateur => {
         // Structurer les utilisateurs en tant que contacts
         const userContact = {
-          id: utilisateur._id.toString(),
+          _id: utilisateur._id.toString(),
           type: 'utilisateur',
           nom: utilisateur.nom,
           presence: utilisateur.presence,
@@ -107,7 +107,7 @@ class UtilisateurService {
       groupes.forEach(groupe => {
         // Structurer les groupes en tant que contacts (sans présence)
         const groupContact = {
-          id: groupe._id.toString(),
+          _id: groupe._id.toString(),
           type: 'groupe',
           nom: groupe.nom,
           presence: '', // Pas de présence pour les groupes
@@ -132,7 +132,7 @@ class UtilisateurService {
       utilisateurs.forEach(utilisateur => {
         // Structurer les utilisateurs en tant que contacts
         const userContact = {
-          id: utilisateur._id.toString(),
+          _id: utilisateur._id.toString(),
           type: 'utilisateur',
           nom: utilisateur.nom,
           presence: utilisateur.presence,
@@ -523,7 +523,7 @@ class UtilisateurService {
       utilisateurs.forEach(utilisateur => {
         // Structurer les utilisateurs en tant que contacts
         const userContact = {
-          id: utilisateur._id.toString(),
+          _id: utilisateur._id.toString(),
           type: 'utilisateur',
           nom: utilisateur.nom,
           presence: utilisateur.presence,
@@ -536,7 +536,7 @@ class UtilisateurService {
       groupes.forEach(groupe => {
         // Structurer les groupes en tant que contacts (sans présence)
         const groupContact = {
-          id: groupe._id.toString(),
+          _id: groupe._id.toString(),
           type: 'groupe',
           nom: groupe.nom,
           presence: '', // Pas de présence pour les groupes

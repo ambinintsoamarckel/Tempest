@@ -182,6 +182,7 @@ module.exports = {
       const message = await utilisateurService.transferToPerson(req.session.passport.user.id, req.params.contactId, req.params.messageId);
       res.status(201).json(message);
     } catch (error) {
+    console.log(error);
       res.status(error.status||500).json({ message: error.message });
     }
   },
@@ -192,6 +193,7 @@ module.exports = {
       const message = await utilisateurService.transferToGroup(req.session.passport.user.id, req.params.groupeId, req.params.messageId);
       res.status(201).json(message);
     } catch (error) {
+      console.log(error);
       res.status(error.status||500).json({ message: error.message });
     }
   },
