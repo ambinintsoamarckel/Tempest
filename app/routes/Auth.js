@@ -33,10 +33,11 @@ passport.use(new LocalStrategy(
 
 passport.serializeUser(function(user, cb) {
   cb(null, {
-    id: user.id,
+    _id: user.id,
     email: user.email,
     nom: user.nom,
-    photo: user.photo
+    photo: user.photo,
+    presence: user.presence
   });
 });
 
@@ -74,7 +75,7 @@ router.post('/login', (req, res, next) => {
 
 // Route pour le logout
 router.post('/logout', async (req, res) => {
-  user= await mongoose.model('Utilisateur').findById(req.user.id);
+  user= await mongoose.model('Utilisateur').findById(req.user._id);
   await user.setInactif().catch(error => res.status(500).json({ message: 'Presence update failed'+error }));
   req.logout((err) => {
     if (err) { return res.status(500).json({ message: 'Logout failed' }); }
