@@ -22,12 +22,13 @@ async function checkAndUpdatePresence() {
     });
 
     // Parcourir chaque utilisateur "en ligne" inactif
-    if(utilisateursEnLigneInactifs)
+    if(utilisateursEnLigneInactifs?.length>0)
       {
         for (const utilisateur of utilisateursEnLigneInactifs) {
           await utilisateur.setInactif();
         }
         io = getIo();
+        console.log("me inactif");
         io.emit('utilisateur_modifie');
 
       }
@@ -44,7 +45,7 @@ async function checkAndUpdateStories() {
       active: true,
       dateExpiration: { $lte: new Date() }
     });
-    if(storiesExpirees)
+    if(storiesExpirees?.length>0)
     {
     // Parcourir chaque story expirée et appeler setInactif
     for (const story of storiesExpirees) {

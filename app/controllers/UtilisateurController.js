@@ -25,7 +25,7 @@ module.exports = {
 
   async VoirTousUtilisateur(req, res) {
     try {
-      const utilisateurs = await utilisateurService.getAllUtilisateur(req.session.passport.user.id);
+      const utilisateurs = await utilisateurService.getAllUtilisateur(req.session.passport.user._id);
       res.status(200).json(utilisateurs);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -51,7 +51,7 @@ module.exports = {
 
   async recupererMonCompte(req, res) {
     try {
-      const utilisateur = await utilisateurService.findMe(req.session.passport.user.id);
+      const utilisateur = await utilisateurService.findMe(req.session.passport.user._id);
       res.status(200).json(utilisateur);
     } catch (error) {
       console.error(error);
@@ -82,7 +82,7 @@ module.exports = {
 
   async modifierMonCompte(req, res) {
     try {
-      const result = await utilisateurService.updateUtilisateur(req.session.passport.user.id, req.body);
+      const result = await utilisateurService.updateUtilisateur(req.session.passport.user._id, req.body);
       req.logout(async (err) => {
         if (err) {
             return res.status(500).json({ message: 'Erreur lors de la déconnexion après le changement de mot de l\'utilisateur.' });
@@ -119,9 +119,9 @@ module.exports = {
 
   async supprimerMonCompte(req, res) {
     try {
-      await utilisateurService.deleteUtilisateur(req.session.passport.user.id);
+      await utilisateurService.deleteUtilisateur(req.session.passport.user._id);
       
-      io.emit('utilisateur_supprime', req.session.passport.user.id);
+      io.emit('utilisateur_supprime', req.session.passport.user._id);
       
       res.status(204).send();
     } catch (error) {
@@ -131,7 +131,7 @@ module.exports = {
 
   async recupererContactsEtMessages(req, res) {
     try {
-      const data = await utilisateurService.findContactsAndLastMessages(req.session.passport.user.id);
+      const data = await utilisateurService.findContactsAndLastMessages(req.session.passport.user._id);
       res.status(200).json(data);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -140,7 +140,7 @@ module.exports = {
 
   async recupererDiscussionAvecContact(req, res) {
     try {
-      const data = await utilisateurService.findDiscussionWith(req.session.passport.user.id, req.params.contactId);
+      const data = await utilisateurService.findDiscussionWith(req.session.passport.user._id, req.params.contactId);
       res.status(200).json(data);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -149,7 +149,7 @@ module.exports = {
 
   async recupererDiscussionAvecGroupe(req, res) {
     try {
-      const data = await utilisateurService.findDiscussionWithGroup(req.session.passport.user.id, req.params.groupeId);
+      const data = await utilisateurService.findDiscussionWithGroup(req.session.passport.user._id, req.params.groupeId);
       res.status(200).json(data);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -159,7 +159,7 @@ module.exports = {
   async envoyerMessageAPersonne(req, res) {
     try {
       const messageData = prepareMessageData(req);
-      const message = await utilisateurService.sendMessageToPerson(req.session.passport.user.id, req.params.contactId, messageData);
+      const message = await utilisateurService.sendMessageToPerson(req.session.passport.user._id, req.params.contactId, messageData);
       res.status(201).json(message);  
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -169,7 +169,7 @@ module.exports = {
   async envoyerMessageAGroupe(req, res) {
     try {
       const messageData = prepareMessageData(req);
-      const message = await utilisateurService.sendMessageToGroup(req.session.passport.user.id, req.params.groupeId, messageData);
+      const message = await utilisateurService.sendMessageToGroup(req.session.passport.user._id, req.params.groupeId, messageData);
       res.status(201).json(message);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -179,7 +179,7 @@ module.exports = {
   async transfererMessageAPersonne(req, res) {
     try {
 
-      const message = await utilisateurService.transferToPerson(req.session.passport.user.id, req.params.contactId, req.params.messageId);
+      const message = await utilisateurService.transferToPerson(req.session.passport.user._id, req.params.contactId, req.params.messageId);
       res.status(201).json(message);
     } catch (error) {
     console.log(error);
@@ -190,7 +190,7 @@ module.exports = {
   async transfererMessageAGroupe(req, res) {
     try {
 
-      const message = await utilisateurService.transferToGroup(req.session.passport.user.id, req.params.groupeId, req.params.messageId);
+      const message = await utilisateurService.transferToGroup(req.session.passport.user._id, req.params.groupeId, req.params.messageId);
       res.status(201).json(message);
     } catch (error) {
       console.log(error);
@@ -201,7 +201,7 @@ module.exports = {
   async ajouterStory(req, res) {
     try {
       const data = prepareStoryData(req);
-      const story = await utilisateurService.addStory(req.session.passport.user.id, data);
+      const story = await utilisateurService.addStory(req.session.passport.user._id, data);
             
       io.emit('story_ajoutee', story);
       
@@ -216,7 +216,7 @@ module.exports = {
     const { oldPassword, newPassword } = req.body;
 
     try {
-        const userId = req.session.passport.user.id;
+        const userId = req.session.passport.user._id;
         const result = await utilisateurService.changePassword(userId, oldPassword, newPassword);
         
         req.logout(async (err) => {
@@ -255,7 +255,7 @@ module.exports = {
     const photo = `${req.protocol}://mahm.tempest.dov:3000/${newPhotoUrl}`;
     const mimetype = req.file.mimetype; 
     try {
-      const result = await utilisateurService.changePhoto(req.session.passport.user.id, photo, mimetype);
+      const result = await utilisateurService.changePhoto(req.session.passport.user._id, photo, mimetype);
       req.logout(async (err) => {
         if (err) {
             return res.status(500).json({ message: 'Erreur lors de la déconnexion après le changement de mot de pdp.' });
@@ -282,7 +282,7 @@ module.exports = {
     const { groupId } = req.params;
 
     try {
-      const result = await utilisateurService.quitGroup(req.session.passport.user.id, groupId);
+      const result = await utilisateurService.quitGroup(req.session.passport.user._id, groupId);
             
       io.emit('groupe_quitte', result);
       
@@ -296,7 +296,7 @@ module.exports = {
 
 
     try {
-      const result = await utilisateurService.createGroup(req.session.passport.user.id, req.body);
+      const result = await utilisateurService.createGroup(req.session.passport.user._id, req.body);
       
       io.emit('groupe_cree', result);
       
@@ -308,7 +308,7 @@ module.exports = {
 
   async supprimerStory(req, res) {
     try {
-      await utilisateurService.deleteStory(req.session.passport.user.id, req.params.id);
+      await utilisateurService.deleteStory(req.session.passport.user._id, req.params.id);
       
       io.emit('story_supprimee', req.params.id);
       
@@ -319,7 +319,7 @@ module.exports = {
   },
   async voirStory(req, res) {
     try {
-     const story= await utilisateurService.voirStory(req.session.passport.user.id, req.params.id);      
+     const story= await utilisateurService.voirStory(req.session.passport.user._id, req.params.id);      
      res.status(200).json(story);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -331,7 +331,7 @@ module.exports = {
     const { id } = req.params;
 
     try {
-      const result = await utilisateurService.removeGroup(req.session.passport.user.id, id);
+      const result = await utilisateurService.removeGroup(req.session.passport.user._id, id);
             
       io.emit('groupe_supprime', result);
       
@@ -357,7 +357,7 @@ module.exports = {
     const mimetype = req.file.mimetype; 
 
     try {
-      const result = await utilisateurService.changePhotoGroup(req.session.passport.user.id, id,photo);
+      const result = await utilisateurService.changePhotoGroup(req.session.passport.user._id, id,photo);
             
       io.emit('photo_groupe_changee', result);
       
@@ -372,7 +372,7 @@ module.exports = {
 
 
     try {
-      const result = await utilisateurService.addMember(req.session.passport.user.id, id, utilisateurId);
+      const result = await utilisateurService.addMember(req.session.passport.user._id, id, utilisateurId);
       
       io.emit('membre_ajoute', result);
 
@@ -387,7 +387,7 @@ module.exports = {
 
 
     try {
-      const result = await utilisateurService.removeMember(req.session.passport.user.id, id, utilisateurId);
+      const result = await utilisateurService.removeMember(req.session.passport.user._id, id, utilisateurId);
       
       io.emit('membre_supprime', result);
       
@@ -401,7 +401,7 @@ module.exports = {
  
 
     try {
-      const result = await utilisateurService.updateGroup(req.session.passport.user.id, id, req.body);
+      const result = await utilisateurService.updateGroup(req.session.passport.user._id, id, req.body);
             
       io.emit('groupe_mis_a_jour', result);
       
@@ -413,7 +413,7 @@ module.exports = {
 
   async supprimerMessage(req, res) {
     try {
-      await utilisateurService.removeMessage(req.session.passport.user.id, req.params.id);
+      await utilisateurService.removeMessage(req.session.passport.user._id, req.params.id);
       
       io.emit('message_supprime', req.params.id);
       
@@ -424,7 +424,7 @@ module.exports = {
   },
   async recherche(req, res) {
     try {
-      const utilisateur=await utilisateurService.searchUtilisateurs(req.params.valeur,req.session.passport.user.id);
+      const utilisateur=await utilisateurService.searchUtilisateurs(req.params.valeur,req.session.passport.user._id);
             
      // io.emit('utilisateur_recherche', utilisateur);
       
