@@ -667,11 +667,12 @@ utilisateurSchema.methods.createGroup = async function(groupe) {
 utilisateurSchema.methods.UpdatePresence = async function() {
   try {
     // Vérifier si la présence est actuellement "inactif"
+    let bool=false;
     if (this.presence === 'inactif') {
       // Mettre à jour la présence à "en ligne"
       this.presence = 'en ligne';
-      const io = getIo();
-      io.emit('utilisateur_modifie'); 
+      bool=true;
+    
       
     }
 
@@ -680,6 +681,11 @@ utilisateurSchema.methods.UpdatePresence = async function() {
 
       // Enregistrer les modifications dans la base de données
       await this.save();
+      if(bool)
+        {
+          const io = getIo();
+          io.emit('utilisateur_modifie'); 
+        }
     
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la présence :', error);
