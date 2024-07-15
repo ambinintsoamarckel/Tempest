@@ -670,6 +670,9 @@ utilisateurSchema.methods.UpdatePresence = async function() {
     if (this.presence === 'inactif') {
       // Mettre à jour la présence à "en ligne"
       this.presence = 'en ligne';
+      const io = getIo();
+      io.emit('utilisateur_modifie'); 
+      
     }
 
       // Mettre à jour l'horodatage de la dernière activité
