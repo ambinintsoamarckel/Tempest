@@ -300,7 +300,7 @@ module.exports = {
       
       io.emit('groupe_cree', result);
       
-      res.status(200).json(result);
+      res.status(201).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
     }
