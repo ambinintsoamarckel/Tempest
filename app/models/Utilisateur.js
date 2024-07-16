@@ -181,7 +181,7 @@ utilisateurSchema.methods.sendMessageToGroup = async function(groupeId, contenu)
     });
     await message.save();
     await message.populate('expediteur groupe');
-    await groupe.populate('membres');
+    await groupe.populate('createur membres');
     const membres=[];
       groupe.membres.forEach(utilisateur => {
         const user={
@@ -328,7 +328,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
        io.emit('message_lu_groupe', {groupe:message.groupe._id,membres:message.groupe.membres,vu:this._id}); 
       }
     }
-    await groupe.populate('membres');
+    await groupe.populate('createur membres');
     const membres=[];
       groupe.membres.forEach(utilisateur => {
         const user={
@@ -347,11 +347,11 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
         nom:groupe.nom,
         description:groupe.description,
         photo:groupe.photo,
-        createur:{_id:groupe.createur._id,
-                  nom:groupe.createur.nom,
-                  email:groupe.createur.email,
-                  photo:groupe.createur.photo,
-                  stories:groupe.createur.stories
+        createur:{
+          _id:groupe.createur._id,
+          nom:groupe.createur.nom,
+          email:groupe.createur.email,
+          photo:groupe.createur.photo,
         },
         membres:membres
       }
@@ -574,7 +574,7 @@ utilisateurSchema.methods.changePhoto = async function(newPhotoUrl, mimetype) {
         }
       });
     }
-
+    console.log("on est ici");
     // Mettre à jour le champ photo avec la nouvelle URL de la photo
     this.photo = newPhotoUrl;
     this.mimetype = mimetype;
@@ -785,6 +785,7 @@ utilisateurSchema.methods.ajouterAuGroupe = async function(groupeId, utilisateur
       notification:true
     };
     await this.sendMessageToGroup(groupe._id,message);
+    await groupe.populate('createur membres');
     return groupe;
   } catch (error) {
     console.error('Erreur lors de l\'ajout de l\'utilisateur au groupe :', error);
@@ -823,6 +824,7 @@ utilisateurSchema.methods.supprimerDuGroupe = async function(groupeId, utilisate
       notification:true
     };
     await this.sendMessageToGroup(groupe._id,message);
+    await groupe.populate('createur membres');
     return groupe;
   } catch (error) {
     console.error('Erreur lors de la suppression de l\'utilisateur du groupe :', error);
@@ -860,6 +862,8 @@ utilisateurSchema.methods.changePhotoGroup = async function(groupeId, newPhotoUr
       notification:true
     };
     await this.sendMessageToGroup(groupe._id,message);;
+
+    await groupe.populate('createur membres');
 
     return groupe;
   } catch (error) {
@@ -1063,8 +1067,7 @@ utilisateurSchema.methods.updateGroup = async function(groupeId, updateData) {
       error.status = 403;
       throw error;
     }
-    console.log(updateData);
-    { 
+   
       if(updateData.nom)
         {
           groupe.nom=updateData.nom;
@@ -1076,7 +1079,8 @@ utilisateurSchema.methods.updateGroup = async function(groupeId, updateData) {
         }
       await groupe.save();
 
-    }
+    
+    await groupe.populate('createur membres');
 
 
     return groupe;

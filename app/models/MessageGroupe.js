@@ -79,7 +79,8 @@ messageGroupeSchema.pre('deleteOne', async function(next) {
     // Retirer le message des messages reçus de tous les membres du groupe sauf l'expéditeur
     const groupe = await mongoose.model('Groupe').findById(message.groupe);
     const membres = await mongoose.model('Utilisateur').find({ _id: { $in: groupe.membres } });
-
+    groupe?.messages?.pull(message._id);
+    await groupe.save;
     membres.forEach(async utilisateur => {
       if (!message.expediteur.equals(utilisateur._id)) {
         utilisateur.messagesGroupesRecus.pull(message._id);

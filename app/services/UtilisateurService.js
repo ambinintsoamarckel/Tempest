@@ -78,6 +78,33 @@ class UtilisateurService {
       throw error;
     }
   }
+  async  getUtilisateursNonMembresDuGroupe(sessionUserId, groupeId) {
+    try {
+      const Utilisateur = mongoose.model('Utilisateur');
+  
+      // Récupérer tous les utilisateurs qui ne sont pas dans le groupe spécifié
+      const utilisateursNonMembres = await Utilisateur.find({
+        _id: { $ne: sessionUserId },
+        groupes: { $nin: [groupeId] }
+      }).populate('stories');
+  
+      // Structurer les utilisateurs en tant que contacts
+      const contacts = utilisateursNonMembres.map(utilisateur => ({
+        _id: utilisateur._id.toString(),
+        type: 'utilisateur',
+        nom: utilisateur.nom,
+        presence: utilisateur.presence,
+        photo: utilisateur.photo,
+        story: utilisateur.stories.length // Longueur des stories
+      }));
+  
+      return contacts;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des utilisateurs non membres du groupe :', error);
+      throw error;
+    }
+  }
+  
 
   async  getAllUtilisateur(sessionUserId) {
     try {
@@ -375,6 +402,7 @@ class UtilisateurService {
 
   async changePhoto(userId, newPhotoUrl,mimetype) {
     try {
+      console.log(userId, 'id ito');
       const user = await Utilisateur.findById(userId);
       if (!user) {
         const error= new Error('Utilisateur non trouvé.');
@@ -384,6 +412,7 @@ class UtilisateurService {
       await user.changePhoto(newPhotoUrl,mimetype);
       return user;
     } catch (error) {
+      console.log (error);
       throw error;
     }
   }
@@ -427,6 +456,7 @@ class UtilisateurService {
       const result = await user.updateGroup(groupId,data);
       return result;
     } catch (error) {
+      console.log(error);
       throw error;
     }
   }
