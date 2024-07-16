@@ -100,8 +100,12 @@ utilisateurSchema.pre('findOneAndUpdate', blockRelationArraysUpdates);
 utilisateurSchema.pre('deleteOne',  async function(next) {
   try {
     const Model = this.model;
+    const Groupe =mongoose.model('Groupe');
     const utilisateur =  await Model.findOne(this.getFilter());
- 
+    await Groupe.updateMany(
+      { membres: utilisateur._id },
+      { $pull: { membres: utilisateur._id } }
+    );
     if (utilisateur.photo) {
       const oldPhotoUrl = utilisateur.photo;
       const relativeFilePath = oldPhotoUrl.split('3000/')[1];
@@ -319,7 +323,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
     // Marquer tous les messages non lus comme lus pour l'utilisateur actuel
     for (const message of messages) {
       const isUserMember = message.luPar.some(entry => entry.utilisateur.equals(this._id));
-      const ExpId = message.expediteur._id;
+      const ExpId = message.expediteur? message.expediteur._id : 'utilisateur';
       if (!isUserMember&&!ExpId.equals(this._id)) {
         message.luPar.push({ utilisateur: this._id, dateLecture: Date.now() });
         await message.save();
@@ -332,7 +336,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
     const membres=[];
       groupe.membres.forEach(utilisateur => {
         const user={
-          _id:utilisateur._id,
+          _id:utilisateur._id  ,
           nom:utilisateur.nom,
           email:utilisateur.email,
           photo:utilisateur.photo,
@@ -348,10 +352,10 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
         description:groupe.description,
         photo:groupe.photo,
         createur:{
-          _id:groupe.createur._id,
-          nom:groupe.createur.nom,
-          email:groupe.createur.email,
-          photo:groupe.createur.photo,
+          _id:groupe.createur ? groupe.createur._id : 'utilisateur',
+          nom:groupe.createur ? groupe.createur.nom : 'utilisateur',
+          email:groupe.createur ? groupe.createur.email : 'utilisateur',
+          photo:groupe.createur ? groupe.createur.photo :'utilisateur',
         },
         membres:membres
       }
@@ -362,10 +366,10 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
       contenu:message.contenu,
       groupe:group,
       expediteur: {
-        _id: message.expediteur._id,
-        nom: message.expediteur.nom,
-        email: message.expediteur.email,
-        photo: message.expediteur.photo
+        _id: message.expediteur ? message.expediteur._id : 'utilisateur',
+        nom: message.expediteur ? message.expediteur.nom : 'utilisateur',
+        email: message.expediteur ? message.expediteur.email :'utilisateur' ,
+        photo: message.expediteur ? message.expediteur.photo : ''
       },
       notification: message.notification,
       dateEnvoi: message.dateEnvoi,
@@ -455,30 +459,34 @@ utilisateurSchema.methods.findLastConversations = async function() {
     // Utiliser Map pour stocker les contacts uniques et leurs derniers messages
     const privateContactsMap = new Map();
     privateMessages.forEach(message => {
-      const isEnvoye = message.expediteur._id.equals(this._id);
-      const contactId = isEnvoye ? message.destinataire._id : message.expediteur._id;
-      const contact = isEnvoye ? message.destinataire : message.expediteur;
-      const dernierMessage = {
-        _id: message._id,
-        contenu: message.contenu,
-        expediteur: message.expediteur._id,
-        lu: message.lu,
-        dateEnvoi: message.dateEnvoi,
-        dateLecture: message.dateLecture
-      };
-
-      if (!privateContactsMap.has(contactId.toString())) {
-        privateContactsMap.set(contactId.toString(), {
-          contact: {
-            _id: contact._id,
-            type: 'utilisateur',
-            nom: contact.nom,
-            presence: contact.presence,
-            photo: contact.photo
-          },
-          dernierMessage
-        });
-      }
+      if (message.expediteur !=null && message.expediteur._id != null)
+        {
+          const isEnvoye = message.expediteur._id.equals(this._id);
+          const contactId = isEnvoye ? message.destinataire._id : message.expediteur._id;
+          const contact = isEnvoye ? message.destinataire : message.expediteur;
+          const dernierMessage = {
+            _id: message._id,
+            contenu: message.contenu,
+            expediteur: message.expediteur._id,
+            lu: message.lu,
+            dateEnvoi: message.dateEnvoi,
+            dateLecture: message.dateLecture
+          };
+    
+          if (!privateContactsMap.has(contactId.toString())) {
+            privateContactsMap.set(contactId.toString(), {
+              contact: {
+                _id: contact._id,
+                type: 'utilisateur',
+                nom: contact.nom,
+                presence: contact.presence,
+                photo: contact.photo
+              },
+              dernierMessage
+            });
+          }
+        }
+      
     });
 
     // Convertir les contacts privés en tableau et trier par date de dernier message
@@ -506,7 +514,7 @@ utilisateurSchema.methods.findLastConversations = async function() {
           dernierMessage: {
             _id: dernierMessage._id,
             contenu: dernierMessage.contenu,
-            expediteur: dernierMessage.expediteur._id,
+            expediteur: dernierMessage.expediteur ? dernierMessage.expediteur._id: 'utilisateur',
             luPar: dernierMessage.luPar,
             dateEnvoi: dernierMessage.dateEnvoi,
             notification: dernierMessage.notification
@@ -614,7 +622,7 @@ utilisateurSchema.methods.quitGroup = async function(groupeId) {
     const message={
       contenu:{
         type:'texte',
-        texte: this.nom+' a quitté le groupe'
+        texte:' a quitté le groupe'
       },
       notification:true
     };
