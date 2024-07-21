@@ -898,7 +898,7 @@ utilisateurSchema.methods.voirStory =async function(storyId) {
             const io = getIo();
             io.emit('story_vue', story.utilisateur._id);
           }
-
+    await story.populate('vues');
     return story;
   } catch (error) {
     console.error(error);
