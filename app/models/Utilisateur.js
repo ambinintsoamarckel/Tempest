@@ -480,7 +480,8 @@ utilisateurSchema.methods.findLastConversations = async function() {
                 type: 'utilisateur',
                 nom: contact.nom,
                 presence: contact.presence,
-                photo: contact.photo
+                photo: contact.photo,
+                stories: contact.stories
               },
               dernierMessage
             });
