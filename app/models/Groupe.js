@@ -80,36 +80,41 @@ groupeSchema.post('save', async function(groupe) {
   }
 });
 
-// Method to add a user to a group
 groupeSchema.methods.ajouterMembre = async function(utilisateurId) {
   try {
+    console.log('début');
     // Check if the user is already a member of the group
     if (this.membres.includes(utilisateurId)) {
       throw new Error('L\'utilisateur est déjà membre du groupe.');
     }
 
-    // Add the user to the list of members
-
-
-    // Retrieve the new member and update their messages
+    // Retrieve the new member
     const nouveaumembre = await mongoose.model('Utilisateur').findById(utilisateurId);
     if (!nouveaumembre) {
-      const error= new Error('L\'utilisateur non trouvé.');
-      error.status=404;
+      const error = new Error('L\'utilisateur non trouvé.');
+      error.status = 404;
       throw error;
     }
 
+    // Add the user to the list of members
     this.membres.push(utilisateurId);
     await this.save();
-    for (const message of this.messages) {
-      nouveaumembre.messagesGroupesRecus.push(message._id);
-      const msg = await mongoose.model('MessageGroupe').findById(message._id);
-      msg.luPar.push({ utilisateur: nouveaumembre._id, dateLecture: Date.now() });
-      await msg.save();
-    }
+
+    // Update all messages in one query
+    await mongoose.model('MessageGroupe').updateMany(
+      { _id: { $in: this.messages } },
+      { $push: { luPar: { utilisateur: nouveaumembre._id, dateLecture: Date.now() } } }
+    );
+
+    // Update the new member's received group messages
+    nouveaumembre.messagesGroupesRecus.push(...this.messages);
     await nouveaumembre.save();
 
-    return 'Utilisateur ajouté au groupe avec succès.';
+    // Populate the members and creator fields
+    await this.populate('membres createur');
+
+    console.log('finiii');
+    return this;
   } catch (error) {
     console.error('Erreur lors de l\'ajout d\'un utilisateur au groupe :', error);
     throw error;
@@ -133,6 +138,7 @@ groupeSchema.methods.supprimerMembre = async function(utilisateurId) {
     // Remove received messages from the user
     const utilisateur = await mongoose.model('Utilisateur').findById(utilisateurId);
     utilisateur.messagesGroupesRecus = utilisateur.messagesGroupesRecus.filter(messageId => !this.messages.includes(messageId));
+    utilisateur.groupes.pull(this._id);
     await utilisateur.save();
 
     return 'Utilisateur supprimé du groupe avec succès.';

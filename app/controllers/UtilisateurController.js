@@ -31,6 +31,14 @@ module.exports = {
       res.status(error.status||500).json({ message: error.message });
     }
   },
+  async VoirNonMembres(req, res) {
+    try {
+      const utilisateurs = await utilisateurService.getUtilisateursNonMembresDuGroupe(req.session.passport.user._id,req.params.groupId);
+      res.status(200).json(utilisateurs);
+    } catch (error) {
+      res.status(error.status||500).json({ message: error.message });
+    }
+  },
   async getUsers(req, res) {
     try {
       const utilisateurs = await utilisateurService.getAllUser();
@@ -241,6 +249,7 @@ module.exports = {
 },
 
   async changePhoto(req, res) {
+    console.log('andrana kely');
     const file = req.file;
     if (!file) {
       return res.status(400).send('Aucun fichier uploadé');
@@ -255,6 +264,7 @@ module.exports = {
     const photo = `${req.protocol}://mahm.tempest.dov:3000/${newPhotoUrl}`;
     const mimetype = req.file.mimetype; 
     try {
+      console.log(req.session.passport);
       const result = await utilisateurService.changePhoto(req.session.passport.user._id, photo, mimetype);
       req.logout(async (err) => {
         if (err) {
@@ -286,7 +296,7 @@ module.exports = {
             
       io.emit('groupe_quitte', result);
       
-      res.status(200).json(result);
+      res.status(204).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
     }
@@ -335,7 +345,7 @@ module.exports = {
             
       io.emit('groupe_supprime', result);
       
-      res.status(200).json(result);
+      res.status(204).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
     }

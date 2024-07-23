@@ -35,6 +35,9 @@ module.exports = (app) => {
     .get(utilisateurController.recupererUtilisateur)
     .put(protectedRoutes, utilisateurController.modifierUtilisateur)
     .delete(protectedRoutes, utilisateurController.supprimerUtilisateur);
+  app.route('/utilisateurs/nonMembres/:groupId')
+    .get(utilisateurController.VoirNonMembres);
+
 
   // Routes pour le compte de l'utilisateur connecté
   app.route('/me')
@@ -50,7 +53,7 @@ module.exports = (app) => {
     .put(protectedRoutes, uploadProfilePhoto.single('photo'), handleMulterErrors, utilisateurController.changePhoto);
 
   app.route('/me/quitGroup/:groupId')
-    .post(protectedRoutes, utilisateurController.quitGroup);
+    .delete(protectedRoutes, utilisateurController.quitGroup);
 
   app.route('/me/createGroup')
     .post(protectedRoutes, utilisateurController.createGroup);
