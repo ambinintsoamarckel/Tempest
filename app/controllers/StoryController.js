@@ -54,6 +54,16 @@ module.exports = {
       res.status(404).json({ message: error.message });
     }
   },
+  async getArchivesById(req,res)
+  {
+    try {
+      const story = await storyService.getArchivesById(req.params.id);
+      res.status(200).json(story);
+    } catch (error) {
+      res.status(404).json({ message: error.message });
+    }
+  },
+
 
   async supprimerStory(req, res) {
     try {

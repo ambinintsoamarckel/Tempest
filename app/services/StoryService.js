@@ -98,6 +98,19 @@ class StoryService {
       throw error;
     }
   }
+
+  async  getArchivesById(id) {
+    try {
+      const stories = await Story.findById(id).populate('utilisateur vues');
+  
+
+  
+      return stories;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des stories pour un utilisateur :', error);
+      throw error;
+    }
+  }
   
   
 }

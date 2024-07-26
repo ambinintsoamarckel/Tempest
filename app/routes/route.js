@@ -101,6 +101,8 @@ module.exports = (app) => {
   app.route('/stories/:id')
     .get(protectedRoutes, utilisateurController.voirStory)
     .delete(protectedRoutes, utilisateurController.supprimerStory);
+  app.route('/archives/:id')
+    .get(protectedRoutes, storyController.getArchivesById)
   app.route('/story/:userid')
     .get(protectedRoutes, storyController.getStoryById);
 

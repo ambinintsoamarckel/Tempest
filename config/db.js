@@ -1,7 +1,10 @@
 const mongoose = require('mongoose');
-const loadFixture= require('../app/fixtures/Fixtures')
-const dbUrl = 'mongodb+srv://mahm:mahm@cluster0.qaxiuic.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';// Remplacez par votre URL de connexion
-//const dbUrl = 'mongodb://mahm:mahm@127.0.0.1:27017/Tempest?retryWrites=true&w=majority&serverSelectionTimeoutMS=2000&appName=mongosh+2.2.6';
+
+//const dbUrl = 'mongodb+srv://mahm:mahm@cluster0.qaxiuic.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';// Remplacez par votre URL de connexion
+//const dbUrl = 'mongodb://mahm:mahm@mahm.tempest.dov:27017,mongo2.tempest.dov:27017/Tempest?replicaSet=rs0&retryWrites=true&w=majority&serverSelectionTimeoutMS=10000&appName=mongosh+2.2.6';
+const dbUrl = 'mongodb://mahm:mahm@127.0.0.1:27017/Tempest?retryWrites=true&w=majority&serverSelectionTimeoutMS=2000&appName=mongosh+2.2.6';
+
+
 const MongoStore = require('connect-mongo');
 mongoose.connect(dbUrl, {
   dbName: 'Tempest',
