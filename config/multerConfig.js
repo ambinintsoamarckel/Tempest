@@ -51,7 +51,7 @@ const filterStoryFile = (req, file, cb) => {
 // Définir le stockage pour les photos de profil
 const profilePhotoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/profilePhotos');
+    cb(null, 'public/uploads/profilePhotos');
   },
   filename: (req, file, cb) => {
     cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
@@ -61,7 +61,7 @@ const profilePhotoStorage = multer.diskStorage({
 // Définir le stockage pour les photos de groupe
 const groupPhotoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/groupPhotos');
+    cb(null, 'public/uploads/groupPhotos');
   },
   filename: (req, file, cb) => {
     cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
@@ -72,13 +72,13 @@ const groupPhotoStorage = multer.diskStorage({
 const messageFileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
-      cb(null, 'uploads/messageImages');
+      cb(null, 'public/uploads/messageImages');
     } else if (file.mimetype.startsWith('audio/')) {
-      cb(null, 'uploads/messageAudios');
+      cb(null, 'public/uploads/messageAudios');
     } else if (file.mimetype.startsWith('video/')) {
-      cb(null, 'uploads/messageVideos');
+      cb(null, 'public/uploads/messageVideos');
     } else {
-      cb(null, 'uploads/messageFiles');
+      cb(null, 'public/uploads/messageFiles');
     }
   },
   filename: (req, file, cb) => {
@@ -88,9 +88,9 @@ const messageFileStorage = multer.diskStorage({
 const storyFileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
-      cb(null, 'uploads/storyImages');
+      cb(null, 'public/uploads/storyImages');
     } else if (file.mimetype.startsWith('video/')) {
-      cb(null, 'uploads/storyVideos');
+      cb(null, 'public/uploads/storyVideos');
     } else {
       cb(new Error('Format de fichier non autorisé'), false);
     }

@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
+const loadFixture= require('../app/fixtures/Fixtures')
 
-//const dbUrl = 'mongodb+srv://mahm:mahm@cluster0.qaxiuic.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';// Remplacez par votre URL de connexion
+const dbUrl = 'mongodb+srv://mahm:mahm@cluster0.qaxiuic.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';// Remplacez par votre URL de connexion
 //const dbUrl = 'mongodb://mahm:mahm@mahm.tempest.dov:27017,mongo2.tempest.dov:27017/Tempest?replicaSet=rs0&retryWrites=true&w=majority&serverSelectionTimeoutMS=10000&appName=mongosh+2.2.6';
-const dbUrl = 'mongodb://mahm:mahm@127.0.0.1:27017/Tempest?retryWrites=true&w=majority&serverSelectionTimeoutMS=2000&appName=mongosh+2.2.6';
+//const dbUrl = 'mongodb://mahm:mahm@127.0.0.1:27017/Tempest?retryWrites=true&w=majority&serverSelectionTimeoutMS=2000&appName=mongosh+2.2.6';
 
 
 const MongoStore = require('connect-mongo');
@@ -15,7 +16,7 @@ const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'Erreur de connexion à la base de données :'));
 db.once('open', async () => {
 console.info('********* Connexion à la base de données réussie ! **********')
-loadFixture();     
+//await loadFixture();     
 });
 const sessionStore = new MongoStore({ mongoUrl: dbUrl });
 module.exports = {

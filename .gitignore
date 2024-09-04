@@ -9,4 +9,5 @@ tmp/
 yarn.lock
 *.log
 *.swp
-uploads/
+public/uploads/
+.vercel
