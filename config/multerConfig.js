@@ -48,88 +48,27 @@ const filterStoryFile = (req, file, cb) => {
     cb(error, false);
   }
 };
+const storage = multer.memoryStorage();
 // Définir le stockage pour les photos de profil
-const profilePhotoStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'public/uploads/profilePhotos');
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-  }
-});
-
-// Définir le stockage pour les photos de groupe
-const groupPhotoStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'public/uploads/groupPhotos');
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-  }
-});
-
-// Définir le stockage pour les fichiers de message
-const messageFileStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, 'public/uploads/messageImages');
-    } else if (file.mimetype.startsWith('audio/')) {
-      cb(null, 'public/uploads/messageAudios');
-    } else if (file.mimetype.startsWith('video/')) {
-      cb(null, 'public/uploads/messageVideos');
-    } else {
-      cb(null, 'public/uploads/messageFiles');
-    }
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-  }
-});// Définir le stockage pour les fichiers de story
-const storyFileStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, 'public/uploads/storyImages');
-    } else if (file.mimetype.startsWith('video/')) {
-      cb(null, 'public/uploads/storyVideos');
-    } else {
-      cb(new Error('Format de fichier non autorisé'), false);
-    }
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-  }
-});
-
-// Configurer Multer pour les fichiers de story
-const uploadStoryFile = multer({
-  storage: storyFileStorage,
-  fileFilter: filterStoryFile,
-  limits: {
-    fileSize: MAX_FILE_SIZE
-  }
-});
-
-// Configurer Multer pour les photos de profil avec filtre
+// Configurer Multer pour utiliser MemoryStorage
 const uploadProfilePhoto = multer({
-  storage: profilePhotoStorage,
+  storage: storage,
   fileFilter: filterImageFile,
   limits: {
     fileSize: MAX_FILE_SIZE
   }
 });
 
-// Configurer Multer pour les photos de groupe avec filtre
 const uploadGroupPhoto = multer({
-  storage: groupPhotoStorage,
+  storage: storage,
   fileFilter: filterImageFile,
   limits: {
     fileSize: MAX_FILE_SIZE
   }
 });
 
-// Configurer Multer pour les fichiers de message avec filtres spécifiques
 const uploadMessageFile = multer({
-  storage: messageFileStorage,
+  storage: storage,
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       filterImageFile(req, file, cb);
@@ -138,13 +77,22 @@ const uploadMessageFile = multer({
     } else if (file.mimetype.startsWith('video/')) {
       filterVideoFile(req, file, cb);
     } else {
-      cb(null, true);
+      cb(new Error('Type de fichier non autorisé'), false);
     }
   },
   limits: {
     fileSize: MAX_FILE_SIZE
   }
 });
+
+const uploadStoryFile = multer({
+  storage: storage,
+  fileFilter: filterStoryFile,
+  limits: {
+    fileSize: MAX_FILE_SIZE
+  }
+});
+
 
 module.exports = {
   uploadProfilePhoto,

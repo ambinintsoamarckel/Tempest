@@ -1,12 +1,13 @@
-
 const cookie = require('cookie'); // Assurez-vous d'avoir installé ce module
 const cookieSignature = require('cookie-signature');
-
+const bucket = require('./firebaseConfig'); // Importation du bucket
 
 const generateSecret = () => {
   return process.env.SESSION_SECRET || 'Mon-secret-qui-tue';
 };
+
 const secret = generateSecret();
+
 const generateCookie = (sessionID) => {
   const signedSessionID = 's:' + cookieSignature.sign(sessionID, secret);
   const sessionCookie = cookie.serialize('connect.sid', signedSessionID, {
@@ -18,6 +19,7 @@ const generateCookie = (sessionID) => {
   });
   return sessionCookie;
 };
+
 function prepareMessageData(req) {
   let messageData;
 
@@ -42,7 +44,7 @@ function prepareMessageData(req) {
         [fileType]: fileUrl
       }
     };
-    console.log('filetype dadanlah ',req.file.mimetype);
+    console.log('filetype dadanlah ', req.file.mimetype);
   } else if (req.body.texte) {
     messageData = {
       contenu: {
@@ -56,8 +58,9 @@ function prepareMessageData(req) {
 
   return messageData;
 };
+
 function prepareStoryData(req) {
-  let messageData;
+  let storyData;
 
   if (req.file) {
     const newFileUrl = req.file.path;
@@ -68,8 +71,8 @@ function prepareStoryData(req) {
       fileType = 'image';
     } else if (req.file.mimetype.startsWith('video/')) {
       fileType = 'video';
-    } 
-    storyData= {
+    }
+    storyData = {
       contenu: {
         type: fileType,
         [fileType]: fileUrl
@@ -89,9 +92,34 @@ function prepareStoryData(req) {
   return storyData;
 };
 
+const uploadFileToFirebase = async (file, destination) => {
+  return new Promise((resolve, reject) => {
+    const blob = bucket.file(destination); // Utilisation du bucket importé
+    const blobStream = blob.createWriteStream({
+      resumable: false,
+      metadata: {
+        contentType: file.mimetype,
+      },
+    });
+
+    blobStream.on('error', (err) => {
+      reject(err);
+    });
+
+    blobStream.on('finish', () => {
+      blob.makePublic().then(() => {
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+        resolve(publicUrl);
+      });
+    });
+
+    blobStream.end(file.buffer);
+  });
+};
+
 module.exports = {
   generateCookie,
   prepareMessageData,
-  prepareStoryData
-
+  prepareStoryData,
+  uploadFileToFirebase
 };

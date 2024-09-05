@@ -2,7 +2,7 @@ const utilisateurService = require('../services/UtilisateurService');
 const messageService = require('../services/MessageService');
 const fs = require('fs');
 const path = require('path');
-const {generateCookie, prepareMessageData,prepareStoryData}=require('../../config/utils');
+const {generateCookie, prepareMessageData,prepareStoryData,uploadFileToFirebase}=require('../../config/utils');
 
 /*socket*/
 const { getIo } = require('../../config/socketConfig');
@@ -248,45 +248,37 @@ module.exports = {
     }
 },
 
-  async changePhoto(req, res) {
-    console.log('andrana kely');
-    const file = req.file;
-    if (!file) {
-      return res.status(400).send('Aucun fichier uploadé');
-    }
-  
-    if (file.error) {
-      console.error(file.error);
-      return res.status(400).send(file.error.message);
-    }
-    const newPhotoUrl = req.file.path;
+async changePhoto(req, res) {
+  const file = req.file;
+  if (!file) {
+    return res.status(400).send('Aucun fichier uploadé');
+  }
+
+  try {
+    const destination = `profilePhotos/${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`;
+    const photoUrl = await uploadFileToFirebase(file, destination);
     
-    const photo = `${req.protocol}://mahm.tempest.dov:3000/${newPhotoUrl}`;
-    const mimetype = req.file.mimetype; 
-    try {
-      console.log(req.session.passport);
-      const result = await utilisateurService.changePhoto(req.session.passport.user._id, photo, mimetype);
-      req.logout(async (err) => {
+    const result = await utilisateurService.changePhoto(req.session.passport.user._id, photoUrl, file.mimetype);
+    req.logout(async (err) => {
+      if (err) {
+        return res.status(500).json({ message: 'Erreur lors de la déconnexion après le changement de photo de profil.' });
+      }
+
+      req.login(result, (err) => {
         if (err) {
-            return res.status(500).json({ message: 'Erreur lors de la déconnexion après le changement de mot de pdp.' });
+          return res.status(500).json({ message: 'Erreur lors de la reconnexion après le changement de photo de profil.' });
         }
 
-        // Reconnecter l'utilisateur
-        req.login(result, (err) => {
-            if (err) {
-                return res.status(500).json({ message: 'Erreur lors de la reconnexion après le changement de mot de pdp.' });
-            }
-            
-            io.emit('photo_changee', result); 
-
-            return res.status(200).json({ message: 'PdP changé avec succès', user: result,'Set-Cookie': generateCookie(req.sessionID)});
-        });
+        io.emit('photo_changee', result);
+        return res.status(200).json({ message: 'Photo de profil changée avec succès', user: result, 'Set-Cookie': generateCookie(req.sessionID) });
+      });
     });
-    } catch (error) {
-      console.error(file.error);
-      res.status(error.status||500).json({ message: error.message });
-    }
-  },
+  } catch (error) {
+    console.error(error);
+    res.status(error.status || 500).json({ message: error.message });
+  }
+},
+
 
   async quitGroup(req, res) {
     const { groupId } = req.params;
@@ -358,24 +350,18 @@ module.exports = {
       return res.status(400).send('Aucun fichier uploadé');
     }
   
-    if (file.error) {
-      console.error(file.error);
-      return res.status(400).send(file.error.message);
-    }
-    const newPhotoUrl = req.file.path;
-    const photo = `${req.protocol}://mahm.tempest.dov:3000/${newPhotoUrl}`;
-    const mimetype = req.file.mimetype; 
-
     try {
-      const result = await utilisateurService.changePhotoGroup(req.session.passport.user._id, id,photo);
-            
-      io.emit('photo_groupe_changee', result);
+      const destination = `groupPhotos/${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`;
+      const photoUrl = await uploadFileToFirebase(file, destination);
       
+      const result = await utilisateurService.changePhotoGroup(req.session.passport.user._id, id, photoUrl);
+      io.emit('photo_groupe_changee', result);
       res.status(200).json(result);
     } catch (error) {
-      res.status(error.status||500).json({ message: error.message });
+      res.status(error.status || 500).json({ message: error.message });
     }
   },
+  
 
   async addMember(req, res) {
     const { id,utilisateurId } = req.params;
