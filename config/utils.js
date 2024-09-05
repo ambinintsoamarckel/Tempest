@@ -1,6 +1,7 @@
 const cookie = require('cookie'); // Assurez-vous d'avoir installé ce module
 const cookieSignature = require('cookie-signature');
 const bucket = require('./firebaseConfig'); // Importation du bucket
+const path = require('path'); // Assurez-vous d'avoir installé ce module
 
 const generateSecret = () => {
   return process.env.SESSION_SECRET || 'Mon-secret-qui-tue';
@@ -20,12 +21,11 @@ const generateCookie = (sessionID) => {
   return sessionCookie;
 };
 
-function prepareMessageData(req) {
+async function prepareMessageData(req) {
   let messageData;
 
   if (req.file) {
-    const newFileUrl = req.file.path;
-    const fileUrl = `${req.protocol}://mahm.tempest.dov:3000/${newFileUrl}`;
+    const fileUrl = await uploadFileToFirebase(req.file, `messages/${req.file.fieldname}-${Date.now()}${path.extname(req.file.originalname)}`);
     let fileType;
 
     if (req.file.mimetype.startsWith('image/')) {
@@ -44,7 +44,7 @@ function prepareMessageData(req) {
         [fileType]: fileUrl
       }
     };
-    console.log('filetype dadanlah ', req.file.mimetype);
+
   } else if (req.body.texte) {
     messageData = {
       contenu: {
@@ -59,12 +59,11 @@ function prepareMessageData(req) {
   return messageData;
 };
 
-function prepareStoryData(req) {
+async function prepareStoryData(req) {
   let storyData;
 
   if (req.file) {
-    const newFileUrl = req.file.path;
-    const fileUrl = `${req.protocol}://mahm.tempest.dov:3000/${newFileUrl}`;
+    const fileUrl = await uploadFileToFirebase(req.file, `stories/${req.file.fieldname}-${Date.now()}${path.extname(req.file.originalname)}`);
     let fileType;
 
     if (req.file.mimetype.startsWith('image/')) {
