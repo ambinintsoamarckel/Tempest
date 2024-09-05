@@ -166,7 +166,7 @@ module.exports = {
 
   async envoyerMessageAPersonne(req, res) {
     try {
-      const messageData = prepareMessageData(req);
+      const messageData = await prepareMessageData(req);
       const message = await utilisateurService.sendMessageToPerson(req.session.passport.user._id, req.params.contactId, messageData);
       res.status(201).json(message);  
     } catch (error) {
@@ -176,7 +176,7 @@ module.exports = {
 
   async envoyerMessageAGroupe(req, res) {
     try {
-      const messageData = prepareMessageData(req);
+      const messageData = await prepareMessageData(req);
       const message = await utilisateurService.sendMessageToGroup(req.session.passport.user._id, req.params.groupeId, messageData);
       res.status(201).json(message);
     } catch (error) {
@@ -208,7 +208,7 @@ module.exports = {
 
   async ajouterStory(req, res) {
     try {
-      const data = prepareStoryData(req);
+      const data = await prepareStoryData(req);
       const story = await utilisateurService.addStory(req.session.passport.user._id, data);
             
       io.emit('story_ajoutee', story);
