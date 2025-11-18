@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
+const bucket = require('../../config/firebaseConfig');
 //commentaire
 // Middleware to block updates to immutable fields
 const blockRelationArraysUpdates = async function(next) {
@@ -150,25 +151,59 @@ groupeSchema.methods.supprimerMembre = async function(utilisateurId) {
 
 // Method to change the group's photo
 groupeSchema.methods.changePhoto = async function(newPhotoUrl) {
+  console.log('📸 changePhoto Groupe START');
+  console.log('   Groupe:', this._id);
+  console.log('   Ancienne photo:', this.photo);
+  console.log('   Nouvelle photo:', newPhotoUrl);
+
   try {
-    // Update the photo field with the new URL
+    // ⚠️ Si le groupe a déjà une photo, supprimer l'ancien fichier de FIREBASE
     if (this.photo) {
       const oldPhotoUrl = this.photo;
-      const relativeFilePath = oldPhotoUrl.split('3000/')[1];
-      const filePath = path.join(__dirname, '../../', relativeFilePath);
+      console.log('   → Suppression de l\'ancienne photo...');
 
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
+      // ⚠️ VÉRIFICATION: C'est bien une URL Firebase ?
+      if (!oldPhotoUrl.startsWith('http')) {
+        console.warn('   ⚠️  Ancienne photo URL invalide, skip suppression');
+      } else {
+        try {
+          // ✅ Extraire le chemin Firebase depuis l'URL
+          const bucketName = bucket.name;
+          const urlPattern = `https://storage.googleapis.com/${bucketName}/`;
+
+          if (oldPhotoUrl.startsWith(urlPattern)) {
+            const filePath = oldPhotoUrl.replace(urlPattern, '');
+            const decodedPath = decodeURIComponent(filePath);
+
+            console.log('   Chemin Firebase:', decodedPath);
+
+            await bucket.file(decodedPath).delete();
+            console.log('   ✓ Ancienne photo Firebase supprimée');
+          } else {
+            console.warn('   ⚠️  URL ne correspond pas au bucket:', oldPhotoUrl);
+          }
+        } catch (deleteError) {
+          console.error('   ❌ Erreur suppression ancienne photo:', deleteError.message);
+          console.error('   Code:', deleteError.code);
+
+          // ⚠️ Ne pas bloquer le changement de photo
+          if (deleteError.code === 404) {
+            console.log('   ℹ️  Ancienne photo déjà supprimée ou inexistante');
+          }
         }
-      });
+      }
     }
+
+    console.log('   → Mise à jour avec nouvelle photo');
     this.photo = newPhotoUrl;
     await this.save();
 
+    console.log('   ✓ Photo mise à jour avec succès');
+    console.log('📸 changePhoto Groupe END');
+
     return 'Photo de profil mise à jour avec succès.';
   } catch (error) {
-    console.error('Erreur lors du changement de photo de profil :', error);
+    console.error('❌ Erreur changePhoto Groupe:', error);
     throw error;
   }
 };

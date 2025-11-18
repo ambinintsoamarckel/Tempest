@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const path=require('path');
 const fs=require('fs');
+const bucket = require('../../config/firebaseConfig');
 
 
 /* socket */
@@ -97,29 +98,76 @@ const utilisateurSchema = new mongoose.Schema({
 }, { timestamps: true });
 // Enregistrement du middleware au niveau du modèle
 utilisateurSchema.pre('findOneAndUpdate', blockRelationArraysUpdates);
-utilisateurSchema.pre('deleteOne',  async function(next) {
+utilisateurSchema.pre('deleteOne', async function(next) {
+  console.log('🔥 PRE-DELETE Utilisateur START');
+
   try {
     const Model = this.model;
-    const Groupe =mongoose.model('Groupe');
-    const utilisateur =  await Model.findOne(this.getFilter());
+    const Groupe = mongoose.model('Groupe');
+    const utilisateur = await Model.findOne(this.getFilter());
+
+    // ⚠️ VÉRIFICATION CRITIQUE
+    if (!utilisateur) {
+      console.warn('⚠️  Utilisateur non trouvé dans pre-delete');
+      return next();
+    }
+
+    console.log('Utilisateur à supprimer:', {
+      id: utilisateur._id,
+      nom: utilisateur.nom,
+      photo: utilisateur.photo
+    });
+
+    // Retirer l'utilisateur de tous les groupes
     await Groupe.updateMany(
       { membres: utilisateur._id },
       { $pull: { membres: utilisateur._id } }
     );
-    if (utilisateur.photo) {
-      const oldPhotoUrl = utilisateur.photo;
-      const relativeFilePath = oldPhotoUrl.split('3000/')[1];
-      const filePath = path.join(__dirname, '../../', relativeFilePath);
+    console.log('✓ Retiré de tous les groupes');
 
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
+    // ⚠️ SUPPRESSION FIREBASE (pas local!)
+    if (utilisateur.photo) {
+      const photoUrl = utilisateur.photo;
+      console.log('📸 Photo de profil détectée:', photoUrl);
+
+      // ⚠️ VÉRIFICATION: C'est bien une URL Firebase ?
+      if (!photoUrl.startsWith('http')) {
+        console.warn('⚠️  Photo URL invalide, skip suppression');
+        return next();
+      }
+
+      try {
+        // ✅ Extraire le chemin Firebase depuis l'URL
+        const bucketName = bucket.name;
+        const urlPattern = `https://storage.googleapis.com/${bucketName}/`;
+
+        if (photoUrl.startsWith(urlPattern)) {
+          const filePath = photoUrl.replace(urlPattern, '');
+          const decodedPath = decodeURIComponent(filePath);
+
+          console.log('   Chemin Firebase:', decodedPath);
+          console.log('   → Suppression de la photo Firebase...');
+
+          await bucket.file(decodedPath).delete();
+          console.log('   ✓ Photo Firebase supprimée');
+        } else {
+          console.warn('⚠️  URL ne correspond pas au bucket:', photoUrl);
         }
-      });
-      next();
+      } catch (photoError) {
+        console.error('❌ Erreur suppression photo Firebase:', photoError.message);
+        console.error('   Code:', photoError.code);
+
+        // ⚠️ Ne pas bloquer la suppression de l'utilisateur
+        if (photoError.code === 404) {
+          console.log('   ℹ️  Photo déjà supprimée ou inexistante');
+        }
+      }
     }
+
+    console.log('🔥 PRE-DELETE Utilisateur END');
+    next();
   } catch (error) {
-    console.error('Erreur lors de la suppression du l\'utilisateur :', error);
+    console.error('❌ Erreur pre-delete Utilisateur:', error);
     next(error);
   }
 });
@@ -568,36 +616,67 @@ utilisateurSchema.methods.changePassword = async function(oldPassword, newPasswo
 };
 
 utilisateurSchema.methods.changePhoto = async function(newPhotoUrl, mimetype) {
+  console.log('📸 changePhoto START');
+  console.log('   User:', this._id);
+  console.log('   Ancienne photo:', this.photo);
+  console.log('   Nouvelle photo:', newPhotoUrl);
+
   try {
     await this.UpdatePresence();
 
-    // Si l'utilisateur a déjà une photo, supprimer l'ancien fichier
+    // ⚠️ Si l'utilisateur a déjà une photo, supprimer l'ancien fichier de FIREBASE
     if (this.photo) {
       const oldPhotoUrl = this.photo;
-      const relativeFilePath = oldPhotoUrl.split('3000/')[1];
-      const filePath = path.join(__dirname, '../../', relativeFilePath);
+      console.log('   → Suppression de l\'ancienne photo...');
 
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
+      // ⚠️ VÉRIFICATION: C'est bien une URL Firebase ?
+      if (!oldPhotoUrl.startsWith('http')) {
+        console.warn('   ⚠️  Ancienne photo URL invalide, skip suppression');
+      } else {
+        try {
+          // ✅ Extraire le chemin Firebase depuis l'URL
+          const bucketName = bucket.name;
+          const urlPattern = `https://storage.googleapis.com/${bucketName}/`;
+
+          if (oldPhotoUrl.startsWith(urlPattern)) {
+            const filePath = oldPhotoUrl.replace(urlPattern, '');
+            const decodedPath = decodeURIComponent(filePath);
+
+            console.log('   Chemin Firebase:', decodedPath);
+
+            await bucket.file(decodedPath).delete();
+            console.log('   ✓ Ancienne photo Firebase supprimée');
+          } else {
+            console.warn('   ⚠️  URL ne correspond pas au bucket:', oldPhotoUrl);
+          }
+        } catch (deleteError) {
+          console.error('   ❌ Erreur suppression ancienne photo:', deleteError.message);
+          console.error('   Code:', deleteError.code);
+
+          // ⚠️ Ne pas bloquer le changement de photo si l'ancienne n'existe plus
+          if (deleteError.code === 404) {
+            console.log('   ℹ️  Ancienne photo déjà supprimée ou inexistante');
+          }
         }
-      });
+      }
     }
-    console.log("on est ici");
-    // Mettre à jour le champ photo avec la nouvelle URL de la photo
+
+    console.log('   → Mise à jour avec nouvelle photo');
+    // Mettre à jour le champ photo avec la nouvelle URL
     this.photo = newPhotoUrl;
     this.mimetype = mimetype;
 
     // Enregistrer les modifications
     await this.save();
+    console.log('   ✓ Photo mise à jour avec succès');
+    console.log('📸 changePhoto END');
 
     return this;
   } catch (error) {
-    console.error('Erreur lors du changement de photo de profil :', error);
+    console.error('❌ Erreur changePhoto:', error);
     throw error;
   }
-};
-// Nouvelle méthode pour quitter un groupe
+};// Nouvelle méthode pour quitter un groupe
 utilisateurSchema.methods.quitGroup = async function(groupeId) {
   try {
     await this.UpdatePresence();
@@ -775,31 +854,6 @@ utilisateurSchema.methods.deleteMessage = async function(messageId) {
     }
 
     console.log('        → Suppression du message de la base de données...');
-
-    // Vérifier si le message contient un fichier à supprimer de Firebase
-    if (message.contenu?.type !== 'texte') {
-      const fileType = message.contenu?.type;
-      const fileUrl = message.contenu?.[fileType];
-
-      if (fileUrl) {
-        console.log('        → Fichier détecté:', fileType);
-        console.log('        URL:', fileUrl);
-
-        try {
-          // Extraire le chemin du fichier depuis l'URL Firebase
-          const fileName = fileUrl.split(`https://storage.googleapis.com/${bucket.name}/`)[1];
-          if (fileName) {
-            console.log('        → Suppression du fichier Firebase:', fileName);
-            await bucket.file(fileName).delete();
-            console.log('        ✓ Fichier Firebase supprimé');
-          }
-        } catch (fileDeleteError) {
-          console.error('        ⚠️  Erreur suppression fichier Firebase:', fileDeleteError.message);
-          // On continue même si la suppression du fichier échoue
-        }
-      }
-    }
-
     await message.deleteOne();
     console.log('        ✓ Message supprimé de la base de données');
     console.log('    >>> deleteMessage METHOD END (SUCCESS)');

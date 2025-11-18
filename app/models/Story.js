@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const cron = require('node-cron');
 const fs = require('fs');
 const path=require('path');
+const bucket = require('../../config/firebaseConfig');
 const storySchema = new mongoose.Schema({
   utilisateur: {
     type: mongoose.Schema.Types.ObjectId,
@@ -33,7 +34,7 @@ const storySchema = new mongoose.Schema({
   dateExpiration: {
     type: Date,
     default: () => new Date(+new Date() + 24 * 60 * 60 * 1000)
-  
+
   },
   vues: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -46,23 +47,70 @@ const storySchema = new mongoose.Schema({
 });
 // Middleware pour supprimer les fichiers associés avant de supprimer le document
 storySchema.pre('deleteOne', async function(next) {
+  console.log('🔥 PRE-DELETE Story START');
+
   try {
-   
     const Model = this.model;
-    const story =  await Model.findOne(this.getFilter());
-    if (story.contenu && ['image', 'video'].includes(story.contenu.type)) {
-      const filePath = path.join(__dirname, '../../', story.contenu[story.contenu.type].split('3000/')[1]);
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
-        } else {
-          console.log(`Fichier ${filePath} supprimé avec succès.`);
-        }
-      });
+    const story = await Model.findOne(this.getFilter());
+
+    // ⚠️ VÉRIFICATION CRITIQUE
+    if (!story) {
+      console.warn('⚠️  Story non trouvée dans pre-delete');
+      return next();
     }
+
+    console.log('Story à supprimer:', {
+      id: story._id,
+      type: story.contenu?.type,
+      utilisateur: story.utilisateur
+    });
+
+    // ⚠️ SUPPRESSION FIREBASE (pas local!)
+    if (story.contenu && ['image', 'video'].includes(story.contenu.type)) {
+      const fileType = story.contenu.type;
+      const fileUrl = story.contenu[fileType];
+
+      console.log('📎 Fichier story détecté:', fileType);
+      console.log('   URL:', fileUrl);
+
+      // ⚠️ VÉRIFICATION: L'URL existe-t-elle ?
+      if (!fileUrl) {
+        console.warn('⚠️  URL de fichier manquante');
+        return next();
+      }
+
+      try {
+        // ✅ Extraire le chemin Firebase depuis l'URL
+        const bucketName = bucket.name;
+        const urlPattern = `https://storage.googleapis.com/${bucketName}/`;
+
+        if (fileUrl.startsWith(urlPattern)) {
+          const filePath = fileUrl.replace(urlPattern, '');
+          const decodedPath = decodeURIComponent(filePath);
+
+          console.log('   Chemin Firebase:', decodedPath);
+          console.log('   → Suppression du fichier Firebase...');
+
+          await bucket.file(decodedPath).delete();
+          console.log('   ✓ Fichier Firebase supprimé avec succès');
+        } else {
+          console.warn('⚠️  URL ne correspond pas au bucket:', fileUrl);
+        }
+      } catch (fileError) {
+        console.error('❌ Erreur suppression fichier Firebase:', fileError.message);
+        console.error('   Code:', fileError.code);
+
+        // ⚠️ Ne pas bloquer la suppression de la story
+        if (fileError.code === 404) {
+          console.log('   ℹ️  Fichier déjà supprimé ou inexistant');
+        }
+      }
+    }
+
+    console.log('🔥 PRE-DELETE Story END');
     next();
   } catch (error) {
-    console.error('Erreur lors de la suppression des fichiers associés :', error);
+    console.error('❌ Erreur pre-delete Story:', error);
     next(error);
   }
 });
