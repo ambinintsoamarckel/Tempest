@@ -15,9 +15,9 @@ const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'Erreur de connexion à la base de données :'));
 db.once('open', async () => {
 console.info('********* Connexion à la base de données réussie ! **********')
-//await loadFixture();     
+//await loadFixture();
 });
-const sessionStore = new MongoStore({ mongoUrl: dbUrl });
+const sessionStore = new MongoStore({ dbName: 'Tempest',mongoUrl: dbUrl });
 module.exports = {
   db,
   sessionStore

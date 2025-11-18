@@ -17,7 +17,7 @@ class UtilisateurService {
   }
   async findUtilisateurById(utilisateurId) {
     try {
-    
+
       const utilisateur = await Utilisateur.findById(utilisateurId).populate('groupes stories');
       const groups=[];
       utilisateur.groupes.forEach(groupe => {
@@ -30,7 +30,7 @@ class UtilisateurService {
         }
         groups.push(group);
       })
-      
+
       const user={
         _id:utilisateur._id,
         nom:utilisateur.nom,
@@ -48,7 +48,7 @@ class UtilisateurService {
   }
   async findMe(utilisateurId) {
     try {
-    
+
       const utilisateur = await Utilisateur.findById(utilisateurId).populate('groupes stories archives');
       const groups=[];
       utilisateur.groupes.forEach(groupe => {
@@ -61,7 +61,7 @@ class UtilisateurService {
         }
         groups.push(group);
       })
-      
+
       const user={
         _id:utilisateur._id,
         nom:utilisateur.nom,
@@ -81,13 +81,13 @@ class UtilisateurService {
   async  getUtilisateursNonMembresDuGroupe(sessionUserId, groupeId) {
     try {
       const Utilisateur = mongoose.model('Utilisateur');
-  
+
       // Récupérer tous les utilisateurs qui ne sont pas dans le groupe spécifié
       const utilisateursNonMembres = await Utilisateur.find({
         _id: { $ne: sessionUserId },
         groupes: { $nin: [groupeId] }
       }).populate('stories');
-  
+
       // Structurer les utilisateurs en tant que contacts
       const contacts = utilisateursNonMembres.map(utilisateur => ({
         _id: utilisateur._id.toString(),
@@ -97,25 +97,25 @@ class UtilisateurService {
         photo: utilisateur.photo,
         story: utilisateur.stories.length // Longueur des stories
       }));
-  
+
       return contacts;
     } catch (error) {
       console.error('Erreur lors de la récupération des utilisateurs non membres du groupe :', error);
       throw error;
     }
   }
-  
+
 
   async  getAllUtilisateur(sessionUserId) {
     try {
       const Utilisateur = mongoose.model('Utilisateur');
       const Groupe = mongoose.model('Groupe');
-  
+
       const contacts = [];
-  
+
       // Récupérer tous les utilisateurs sauf l'utilisateur en session
       const utilisateurs = await Utilisateur.find({ _id: { $ne: sessionUserId } }).populate('stories');
-  
+
       utilisateurs.forEach(utilisateur => {
         // Structurer les utilisateurs en tant que contacts
         const userContact = {
@@ -128,10 +128,10 @@ class UtilisateurService {
         };
         contacts.push(userContact);
       });
-  
+
       // Récupérer les groupes auxquels l'utilisateur en session appartient
       const groupes = await Groupe.find({ membres: sessionUserId });
-  
+
       groupes.forEach(groupe => {
         // Structurer les groupes en tant que contacts (sans présence)
         const groupContact = {
@@ -143,7 +143,7 @@ class UtilisateurService {
         };
         contacts.push(groupContact);
       });
-  
+
       return contacts;
     } catch (error) {
       console.error('Erreur lors de la récupération des utilisateurs et des groupes :', error);
@@ -156,7 +156,7 @@ class UtilisateurService {
       const contacts = [];
       // Récupérer tous les utilisateurs sauf l'utilisateur en session
       const utilisateurs = await Utilisateur.find().populate('stories');
-  
+
       utilisateurs.forEach(utilisateur => {
         // Structurer les utilisateurs en tant que contacts
         const userContact = {
@@ -169,7 +169,7 @@ class UtilisateurService {
         };
         contacts.push(userContact);
       });
-  
+
       return contacts;
     } catch (error) {
       console.error('Erreur lors de la récupération des utilisateurs et des groupes :', error);
@@ -182,7 +182,7 @@ class UtilisateurService {
   // Mettre à jour un utilisateur
   async updateUtilisateur(utilisateurId, data) {
     try {
-  
+
       const utilisateur = await Utilisateur.findByIdAndUpdate(utilisateurId, data, { new: true });
       if (!utilisateur) {
         const error= new Error('Utilisateur non trouvé');
@@ -322,7 +322,7 @@ class UtilisateurService {
         throw error;
       }
     }
-  
+
     // Envoyer un message de groupe
     async transferToGroup(expediteurId, groupeId, messageId) {
       try {
@@ -519,16 +519,26 @@ class UtilisateurService {
     }
   }
   async removeMessage(userId, messageId) {
+    console.log('--- removeMessage SERVICE START ---');
+    console.log('  User ID:', userId);
+    console.log('  Message ID:', messageId);
+
     try {
       const user = await Utilisateur.findById(userId);
       if (!user) {
-        const error= new Error('Utilisateur non trouvé.');
+        console.error('  ❌ Utilisateur non trouvé:', userId);
+        const error = new Error('Utilisateur non trouvé.');
         error.status = 401;
         throw error;
       }
+
+      console.log('  ✓ Utilisateur trouvé:', user._id);
       const result = await user.deleteMessage(messageId);
+      console.log('  ✓ Résultat deleteMessage:', result);
+      console.log('--- removeMessage SERVICE END ---');
       return result;
     } catch (error) {
+      console.error('  ❌ Erreur dans removeMessage SERVICE:', error.message);
       throw error;
     }
   }
@@ -537,21 +547,21 @@ class UtilisateurService {
       const regex = new RegExp(parametre, 'i'); // 'i' pour une recherche insensible à la casse
       const Utilisateur = mongoose.model('Utilisateur');
       const Groupe = mongoose.model('Groupe');
-  
+
       // Rechercher les utilisateurs correspondant au paramètre
       const utilisateurs = await Utilisateur.find({
         _id: { $ne: sessionUserId }, // Exclure l'utilisateur en session
         nom: { $regex: regex }
       }).populate('stories'); // Ajouter 'stories' à la population
-  
+
       // Rechercher les groupes auxquels l'utilisateur en session appartient et correspondant au paramètre
       const groupes = await Groupe.find({
         membres: sessionUserId,
         nom: { $regex: regex }
       });
-  
+
       const contacts = [];
-  
+
       utilisateurs.forEach(utilisateur => {
         // Structurer les utilisateurs en tant que contacts
         const userContact = {
@@ -564,7 +574,7 @@ class UtilisateurService {
         };
         contacts.push(userContact);
       });
-  
+
       groupes.forEach(groupe => {
         // Structurer les groupes en tant que contacts (sans présence)
         const groupContact = {
@@ -576,7 +586,7 @@ class UtilisateurService {
         };
         contacts.push(groupContact);
       });
-  
+
       return contacts;
     } catch (error) {
       console.error('Erreur lors de la recherche des utilisateurs et des groupes :', error);

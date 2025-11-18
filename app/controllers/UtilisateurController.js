@@ -14,8 +14,8 @@ module.exports = {
   async creerUtilisateur(req, res) {
     try {
       const utilisateur = await utilisateurService.createUtilisateur(req.body);
-      
-      io.emit('utilisateur_cree', utilisateur); 
+
+      io.emit('utilisateur_cree', utilisateur);
 
       res.status(201).json(utilisateur);
     } catch (error) {
@@ -78,10 +78,10 @@ module.exports = {
   async modifierUtilisateur(req, res) {
     try {
       const utilisateur = await utilisateurService.updateUtilisateur(req.params.id, req.body);
-      
+
       io.emit('utilisateur_modifie', utilisateur);
 
-      
+
       res.status(200).json(utilisateur);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -101,7 +101,7 @@ module.exports = {
             if (err) {
                 return res.status(500).json({ message: 'Erreur lors de la reconnexion après le changement de l\'utilisateur.' });
             }
-            
+
             io.emit('utilisateur_modifie', result);
 
             return res.status(200).json({ message: 'Utilisateur changé avec succès', user: result,'Set-Cookie': generateCookie(req.sessionID) });
@@ -117,7 +117,7 @@ module.exports = {
     try {
       await utilisateurService.deleteUtilisateur(req.params.id);
 
-      io.emit('utilisateur_supprime', req.params.id); 
+      io.emit('utilisateur_supprime', req.params.id);
 
       res.status(204).send();
     } catch (error) {
@@ -128,9 +128,9 @@ module.exports = {
   async supprimerMonCompte(req, res) {
     try {
       await utilisateurService.deleteUtilisateur(req.session.passport.user._id);
-      
+
       io.emit('utilisateur_supprime', req.session.passport.user._id);
-      
+
       res.status(204).send();
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -165,22 +165,62 @@ module.exports = {
   },
 
   async envoyerMessageAPersonne(req, res) {
+    console.log('=== DÉBUT envoyerMessageAPersonne ===');
+    console.log('User ID:', req.session?.passport?.user?._id);
+    console.log('Contact ID:', req.params.contactId);
+    console.log('File présent:', !!req.file);
+    console.log('Body:', req.body);
+
     try {
       const messageData = await prepareMessageData(req);
-      const message = await utilisateurService.sendMessageToPerson(req.session.passport.user._id, req.params.contactId, messageData);
-      res.status(201).json(message);  
+      console.log('Message data préparé:', JSON.stringify(messageData, null, 2));
+
+      const message = await utilisateurService.sendMessageToPerson(
+        req.session.passport.user._id,
+        req.params.contactId,
+        messageData
+      );
+
+      console.log('Message envoyé avec succès:', message._id);
+      console.log('=== FIN envoyerMessageAPersonne (SUCCESS) ===\n');
+      res.status(201).json(message);
     } catch (error) {
-      res.status(error.status||500).json({ message: error.message });
+      console.error('=== ERREUR envoyerMessageAPersonne ===');
+      console.error('Message:', error.message);
+      console.error('Stack:', error.stack);
+      console.error('Status:', error.status);
+      console.error('=== FIN envoyerMessageAPersonne (ERROR) ===\n');
+      res.status(error.status || 500).json({ message: error.message });
     }
   },
 
   async envoyerMessageAGroupe(req, res) {
+    console.log('=== DÉBUT envoyerMessageAGroupe ===');
+    console.log('User ID:', req.session?.passport?.user?._id);
+    console.log('Groupe ID:', req.params.groupeId);
+    console.log('File présent:', !!req.file);
+    console.log('Body:', req.body);
+
     try {
       const messageData = await prepareMessageData(req);
-      const message = await utilisateurService.sendMessageToGroup(req.session.passport.user._id, req.params.groupeId, messageData);
+      console.log('Message data préparé:', JSON.stringify(messageData, null, 2));
+
+      const message = await utilisateurService.sendMessageToGroup(
+        req.session.passport.user._id,
+        req.params.groupeId,
+        messageData
+      );
+
+      console.log('Message envoyé avec succès au groupe:', message._id);
+      console.log('=== FIN envoyerMessageAGroupe (SUCCESS) ===\n');
       res.status(201).json(message);
     } catch (error) {
-      res.status(error.status||500).json({ message: error.message });
+      console.error('=== ERREUR envoyerMessageAGroupe ===');
+      console.error('Message:', error.message);
+      console.error('Stack:', error.stack);
+      console.error('Status:', error.status);
+      console.error('=== FIN envoyerMessageAGroupe (ERROR) ===\n');
+      res.status(error.status || 500).json({ message: error.message });
     }
   },
 
@@ -210,9 +250,9 @@ module.exports = {
     try {
       const data = await prepareStoryData(req);
       const story = await utilisateurService.addStory(req.session.passport.user._id, data);
-            
+
       io.emit('story_ajoutee', story);
-      
+
       res.status(201).json(story);
     } catch (error) {
       console.error(error);
@@ -226,7 +266,7 @@ module.exports = {
     try {
         const userId = req.session.passport.user._id;
         const result = await utilisateurService.changePassword(userId, oldPassword, newPassword);
-        
+
         req.logout(async (err) => {
             if (err) {
                 return res.status(500).json({ message: 'Erreur lors de la déconnexion après le changement de mot de passe.' });
@@ -257,7 +297,7 @@ async changePhoto(req, res) {
   try {
     const destination = `profilePhotos/${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`;
     const photoUrl = await uploadFileToFirebase(file, destination);
-    
+
     const result = await utilisateurService.changePhoto(req.session.passport.user._id, photoUrl, file.mimetype);
     req.logout(async (err) => {
       if (err) {
@@ -285,9 +325,9 @@ async changePhoto(req, res) {
 
     try {
       const result = await utilisateurService.quitGroup(req.session.passport.user._id, groupId);
-            
+
       io.emit('groupe_quitte', result);
-      
+
       res.status(204).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -299,9 +339,9 @@ async changePhoto(req, res) {
 
     try {
       const result = await utilisateurService.createGroup(req.session.passport.user._id, req.body);
-      
+
       io.emit('groupe_cree', result);
-      
+
       res.status(201).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -311,9 +351,9 @@ async changePhoto(req, res) {
   async supprimerStory(req, res) {
     try {
       await utilisateurService.deleteStory(req.session.passport.user._id, req.params.id);
-      
+
       io.emit('story_supprimee', req.params.id);
-      
+
       res.status(204).send();
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -321,7 +361,7 @@ async changePhoto(req, res) {
   },
   async voirStory(req, res) {
     try {
-     const story= await utilisateurService.voirStory(req.session.passport.user._id, req.params.id);      
+     const story= await utilisateurService.voirStory(req.session.passport.user._id, req.params.id);
      res.status(200).json(story);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -334,9 +374,9 @@ async changePhoto(req, res) {
 
     try {
       const result = await utilisateurService.removeGroup(req.session.passport.user._id, id);
-            
+
       io.emit('groupe_supprime', result);
-      
+
       res.status(204).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -349,11 +389,11 @@ async changePhoto(req, res) {
     if (!file) {
       return res.status(400).send('Aucun fichier uploadé');
     }
-  
+
     try {
       const destination = `groupPhotos/${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`;
       const photoUrl = await uploadFileToFirebase(file, destination);
-      
+
       const result = await utilisateurService.changePhotoGroup(req.session.passport.user._id, id, photoUrl);
       io.emit('photo_groupe_changee', result);
       res.status(200).json(result);
@@ -361,7 +401,7 @@ async changePhoto(req, res) {
       res.status(error.status || 500).json({ message: error.message });
     }
   },
-  
+
 
   async addMember(req, res) {
     const { id,utilisateurId } = req.params;
@@ -369,7 +409,7 @@ async changePhoto(req, res) {
 
     try {
       const result = await utilisateurService.addMember(req.session.passport.user._id, id, utilisateurId);
-      
+
       io.emit('membre_ajoute', result);
 
       res.status(200).json(result);
@@ -384,9 +424,9 @@ async changePhoto(req, res) {
 
     try {
       const result = await utilisateurService.removeMember(req.session.passport.user._id, id, utilisateurId);
-      
+
       io.emit('membre_supprime', result);
-      
+
       res.status(200).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -394,13 +434,13 @@ async changePhoto(req, res) {
   },
   async updategroup(req, res) {
     const { id } = req.params;
- 
+
 
     try {
       const result = await utilisateurService.updateGroup(req.session.passport.user._id, id, req.body);
-            
+
       io.emit('groupe_mis_a_jour', result);
-      
+
       res.status(200).json(result);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });
@@ -408,22 +448,38 @@ async changePhoto(req, res) {
   },
 
   async supprimerMessage(req, res) {
+    console.log('=== DÉBUT supprimerMessage ===');
+    console.log('User ID:', req.session?.passport?.user?._id);
+    console.log('Message ID:', req.params.id);
+
     try {
-      await utilisateurService.removeMessage(req.session.passport.user._id, req.params.id);
-      
+      const result = await utilisateurService.removeMessage(
+        req.session.passport.user._id,
+        req.params.id
+      );
+
+      console.log('Message supprimé:', result);
+      console.log('Émission socket.io: message_supprime');
       io.emit('message_supprime', req.params.id);
-      
+
+      console.log('=== FIN supprimerMessage (SUCCESS) ===\n');
       res.status(204).send();
     } catch (error) {
-      res.status(error.status||500).json({ message: error.message });
+      console.error('=== ERREUR supprimerMessage ===');
+      console.error('Message:', error.message);
+      console.error('Stack:', error.stack);
+      console.error('Status:', error.status);
+      console.error('=== FIN supprimerMessage (ERROR) ===\n');
+      res.status(error.status || 500).json({ message: error.message });
     }
   },
+
   async recherche(req, res) {
     try {
       const utilisateur=await utilisateurService.searchUtilisateurs(req.params.valeur,req.session.passport.user._id);
-            
+
      // io.emit('utilisateur_recherche', utilisateur);
-      
+
       res.status(200.).json(utilisateur);
     } catch (error) {
       res.status(error.status||500).json({ message: error.message });

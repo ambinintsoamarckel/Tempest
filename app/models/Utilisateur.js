@@ -59,7 +59,7 @@ const utilisateurSchema = new mongoose.Schema({
   mimetype: {
     type: String,
     default: null
-  
+
   },
   presence: {
     type: String,
@@ -194,7 +194,7 @@ utilisateurSchema.methods.sendMessageToGroup = async function(groupeId, contenu)
           email:utilisateur.email,
           photo:utilisateur.photo,
           stories:utilisateur.stories,
-          
+
           groupes:utilisateur.groupes
         };
         membres.push(user);
@@ -212,7 +212,7 @@ utilisateurSchema.methods.sendMessageToGroup = async function(groupeId, contenu)
         },
         membres:membres
       }
-    
+
 
     const messagesSimplifies ={
       _id: message._id,
@@ -230,11 +230,11 @@ utilisateurSchema.methods.sendMessageToGroup = async function(groupeId, contenu)
     };
 
     const io = getIo();
-    io.emit('message_envoye_groupe', messagesSimplifies); 
-    
+    io.emit('message_envoye_groupe', messagesSimplifies);
+
     return message;
 
-    
+
   } catch (error) {
     console.error('Erreur lors de l\'envoi du message au groupe :', error);
     throw error;
@@ -249,7 +249,7 @@ utilisateurSchema.methods.findDiscussionWithPerson = async function(contactId) {
       const error= new Error('L\'utilisateur spécifié n\'existe pas.');
       error.status = 404;
       throw error;
-      
+
     }
     const messages = await mongoose.model('MessagePrive').find({
       $or: [
@@ -319,7 +319,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
     }
 
     const messages = await mongoose.model('MessageGroupe').find({ groupe: groupeId }).sort({ dateEnvoi: 1 }).populate('expediteur groupe');
-    
+
     // Marquer tous les messages non lus comme lus pour l'utilisateur actuel
     for (const message of messages) {
       const isUserMember = message.luPar.some(entry => entry.utilisateur.equals(this._id));
@@ -329,7 +329,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
         await message.save();
 
         const io = getIo();
-       io.emit('message_lu_groupe', {groupe:message.groupe._id,membres:message.groupe.membres,vu:this._id}); 
+       io.emit('message_lu_groupe', {groupe:message.groupe._id,membres:message.groupe.membres,vu:this._id});
       }
     }
     await groupe.populate('createur membres');
@@ -341,7 +341,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
           email:utilisateur.email,
           photo:utilisateur.photo,
           stories:utilisateur.stories,
-          
+
           groupes:utilisateur.groupes
         };
         membres.push(user);
@@ -359,7 +359,7 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
         },
         membres:membres
       }
-    
+
 
     const messagesSimplifies = messages.map(message => ({
       _id: message._id,
@@ -427,7 +427,7 @@ utilisateurSchema.methods.deleteStory = async function(storyId) {
     }
 
     await story.deleteOne();
-    
+
     // Supprimer l'ID de la story du tableau stories
     this.stories.splice(index, 1);
     await this.save();
@@ -472,7 +472,7 @@ utilisateurSchema.methods.findLastConversations = async function() {
             dateEnvoi: message.dateEnvoi,
             dateLecture: message.dateLecture
           };
-    
+
           if (!privateContactsMap.has(contactId.toString())) {
             privateContactsMap.set(contactId.toString(), {
               contact: {
@@ -487,7 +487,7 @@ utilisateurSchema.methods.findLastConversations = async function() {
             });
           }
         }
-      
+
     });
 
     // Convertir les contacts privés en tableau et trier par date de dernier message
@@ -614,7 +614,7 @@ utilisateurSchema.methods.quitGroup = async function(groupeId) {
       error.status = 403;
       throw error;
     }
-    
+
     if (groupe.createur.equals(this._id)) {
       const error= new Error('Vous ne pouvez pas quitté ce groupe vous êtes le créateur.');
       error.status = 403;
@@ -681,8 +681,8 @@ utilisateurSchema.methods.UpdatePresence = async function() {
       // Mettre à jour la présence à "en ligne"
       this.presence = 'en ligne';
       bool=true;
-    
-      
+
+
     }
 
       // Mettre à jour l'horodatage de la dernière activité
@@ -693,9 +693,9 @@ utilisateurSchema.methods.UpdatePresence = async function() {
       if(bool)
         {
           const io = getIo();
-          io.emit('utilisateur_modifie'); 
+          io.emit('utilisateur_modifie');
         }
-    
+
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la présence :', error);
   }
@@ -710,55 +710,106 @@ utilisateurSchema.methods.setInactif = async function() {
 };
 
 utilisateurSchema.methods.deleteMessage = async function(messageId) {
+  console.log('    >>> deleteMessage METHOD START');
+  console.log('        User:', this._id);
+  console.log('        Message ID:', messageId);
+
   try {
-   
     await this.UpdatePresence();
+    console.log('        ✓ Présence mise à jour');
+
     const MessageAbstrait = mongoose.model('MessageAbstrait');
     const message = await MessageAbstrait.findById(messageId);
 
     if (!message) {
-      const error= new Error('Le message spécifié n\'existe pas.');
+      console.error('        ❌ Message non trouvé:', messageId);
+      const error = new Error('Le message spécifié n\'existe pas.');
       error.status = 404;
       throw error;
     }
 
+    console.log('        ✓ Message trouvé');
+    console.log('        Type:', message.type);
     const discriminatorKey = message.type;
-    
 
     let isAuthorized = false;
     let groupe;
 
     if (discriminatorKey === 'MessagePrive') {
+      console.log('        → Message privé détecté');
       await message.populate('expediteur destinataire');
+      console.log('        Expéditeur:', message.expediteur?._id);
+      console.log('        Destinataire:', message.destinataire?._id);
+
       if (message.expediteur.equals(this._id) || message.destinataire.equals(this._id)) {
         isAuthorized = true;
+        console.log('        ✓ Autorisation accordée (expéditeur ou destinataire)');
       }
+
     } else if (discriminatorKey === 'MessageGroupe') {
+      console.log('        → Message de groupe détecté');
       await message.populate('expediteur groupe');
       groupe = await mongoose.model('Groupe').findById(message.groupe);
+
+      console.log('        Expéditeur:', message.expediteur?._id);
+      console.log('        Groupe:', groupe?._id);
+      console.log('        Créateur du groupe:', groupe?.createur);
+
       if (message.expediteur.equals(this._id) || groupe.createur.equals(this._id)) {
         isAuthorized = true;
+        console.log('        ✓ Autorisation accordée (expéditeur ou créateur)');
       }
+
     } else {
-      const error= new Error('Type de message invalide.');
+      console.error('        ❌ Type de message invalide:', discriminatorKey);
+      const error = new Error('Type de message invalide.');
       error.status = 400;
       throw error;
     }
 
     if (!isAuthorized) {
-      const error= new Error('Vous n\'êtes pas autorisé à supprimer ce message.');
+      console.error('        ❌ Non autorisé à supprimer ce message');
+      const error = new Error('Vous n\'êtes pas autorisé à supprimer ce message.');
       error.status = 403;
       throw error;
     }
 
+    console.log('        → Suppression du message de la base de données...');
 
-    // Supprimer le message de la base de données
+    // Vérifier si le message contient un fichier à supprimer de Firebase
+    if (message.contenu?.type !== 'texte') {
+      const fileType = message.contenu?.type;
+      const fileUrl = message.contenu?.[fileType];
+
+      if (fileUrl) {
+        console.log('        → Fichier détecté:', fileType);
+        console.log('        URL:', fileUrl);
+
+        try {
+          // Extraire le chemin du fichier depuis l'URL Firebase
+          const fileName = fileUrl.split(`https://storage.googleapis.com/${bucket.name}/`)[1];
+          if (fileName) {
+            console.log('        → Suppression du fichier Firebase:', fileName);
+            await bucket.file(fileName).delete();
+            console.log('        ✓ Fichier Firebase supprimé');
+          }
+        } catch (fileDeleteError) {
+          console.error('        ⚠️  Erreur suppression fichier Firebase:', fileDeleteError.message);
+          // On continue même si la suppression du fichier échoue
+        }
+      }
+    }
+
     await message.deleteOne();
+    console.log('        ✓ Message supprimé de la base de données');
+    console.log('    >>> deleteMessage METHOD END (SUCCESS)');
 
-    // Les références dans les collections appropriées seront mises à jour par les middlewares
     return 'Message supprimé avec succès.';
   } catch (error) {
-    console.error('Erreur lors de la suppression du message :', error);
+    console.error('    ❌ Erreur dans deleteMessage METHOD');
+    console.error('        Message:', error.message);
+    console.error('        Stack:', error.stack);
+    console.error('    >>> deleteMessage METHOD END (ERROR)');
     throw error;
   }
 };
@@ -784,7 +835,7 @@ utilisateurSchema.methods.ajouterAuGroupe = async function(groupeId, utilisateur
       error.status = 403;
       throw error;
     }
-    
+
     await groupe.ajouterMembre(utilisateurId);
     const message={
       contenu:{
@@ -890,7 +941,7 @@ utilisateurSchema.methods.voirStory =async function(storyId) {
       error.status = 404;
       throw error;
     }
-    
+
     const dejavu = story.vues.some(entry => entry.equals(this._id));
     if (!dejavu&&!story.utilisateur._id.equals(this._id)) {
             story.vues.push(this._id );
@@ -939,7 +990,7 @@ utilisateurSchema.methods.supprimerGroupe = async function(groupeId) {
 utilisateurSchema.methods.transferToPerson = async function( destinataireId,originalMessageId) {
   try {
     await this.UpdatePresence(); // Assure que la présence de l'utilisateur est mise à jour
-  
+
 
     // Trouve le message original par son ID
     const originalMessage = await mongoose.model('MessageAbstrait').findById(originalMessageId);
@@ -1049,7 +1100,7 @@ utilisateurSchema.methods.transferToGroup = async function( groupeId,originalMes
     // Envoie le message au groupe spécifié et récupère le message transféré
     const transferredMessage = await this.sendMessageToGroup(groupeId, contenu);
 
- 
+
 
     return transferredMessage;
   } catch (error) {
@@ -1076,7 +1127,7 @@ utilisateurSchema.methods.updateGroup = async function(groupeId, updateData) {
       error.status = 403;
       throw error;
     }
-   
+
       if(updateData.nom)
         {
           groupe.nom=updateData.nom;
@@ -1088,7 +1139,7 @@ utilisateurSchema.methods.updateGroup = async function(groupeId, updateData) {
         }
       await groupe.save();
 
-    
+
     await groupe.populate('createur membres');
 
 
