@@ -10,14 +10,44 @@ const { uploadProfilePhoto, uploadMessageFile, uploadGroupPhoto,uploadStoryFile 
 // Middleware pour les routes protégées
 const protectedRoutes = require('./protectedRoutes');
 const UtilisateurController = require('../controllers/UtilisateurController');
+function debugMiddleware(req, res, next) {
+  console.log('\n🔍 === DEBUG MIDDLEWARE ===');
+  console.log('📍 Route:', req.method, req.path);
+  console.log('📋 Params:', req.params);
+  console.log('📦 Body:', req.body);
+  console.log('📎 File:', req.file ? 'OUI' : 'NON');
+  console.log('🔐 Session:', req.session?.passport?.user?._id || 'PAS DE SESSION');
+  console.log('📊 Headers:', {
+    'content-type': req.headers['content-type'],
+    'content-length': req.headers['content-length']
+  });
+  console.log('=========================\n');
+  next();
+}
+
+// ===================================
+// 2. MULTER ERROR HANDLER AMÉLIORÉ
+// ===================================
 function handleMulterErrors(err, req, res, next) {
+  console.log('\n⚠️  === MULTER ERROR HANDLER ===');
+  console.log('Erreur détectée:', err);
+
   if (err instanceof multer.MulterError) {
-    // Gérer les erreurs spécifiques à Multer
-    return res.status(400).json({ message: err.message });
+    console.error('❌ Erreur Multer:', err.code, err.message);
+    return res.status(400).json({
+      message: err.message,
+      code: err.code
+    });
   } else if (err) {
-    // Gérer les erreurs personnalisées du filtre de fichier
-    return res.status(err.status || 500).json({ message: err.message });
+    console.error('❌ Erreur personnalisée:', err.message);
+    console.error('Stack:', err.stack);
+    return res.status(err.status || 500).json({
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
+
+  console.log('✅ Pas d\'erreur, next()');
   next();
 }
 
@@ -57,9 +87,22 @@ module.exports = (app) => {
 
   app.route('/me/createGroup')
     .post(protectedRoutes, utilisateurController.createGroup);
-
   app.route('/messages/personne/:contactId')
-    .post(protectedRoutes,uploadMessageFile.single('file'), handleMulterErrors, utilisateurController.envoyerMessageAPersonne)
+    .post(
+      debugMiddleware,           // ✅ 1. Log tout ce qui arrive
+      protectedRoutes,            // ✅ 2. Vérifie l'auth
+      (req, res, next) => {       // ✅ 3. Log après auth
+        console.log('✅ Auth OK, user:', req.session?.passport?.user?._id);
+        next();
+      },
+      uploadMessageFile.single('file'),  // ✅ 4. Upload le fichier
+      (req, res, next) => {       // ✅ 5. Log après upload
+        console.log('✅ Upload OK, file:', req.file?.filename || 'PAS DE FICHIER');
+        next();
+      },
+      handleMulterErrors,         // ✅ 6. Gère les erreurs
+      utilisateurController.envoyerMessageAPersonne  // ✅ 7. Controller
+    )
     .get(protectedRoutes, utilisateurController.recupererDiscussionAvecContact);
 
   app.route('/messages/groupe/:groupeId')
