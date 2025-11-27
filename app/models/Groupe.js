@@ -211,18 +211,44 @@ groupeSchema.methods.changePhoto = async function(newPhotoUrl) {
 // Middleware to handle group deletion
 groupeSchema.pre('deleteOne', async function(next) {
   try {
+    console.log('🔥 PRE-DELETE Utilisateur START');
+
     const Model = this.model;
     const groupe =  await Model.findOne(this.getFilter());
     if (groupe.photo) {
       const oldPhotoUrl = groupe.photo;
-      const relativeFilePath = oldPhotoUrl.split('3000/')[1];
-      const filePath = path.join(__dirname, '../../', relativeFilePath);
+      console.log('   → Suppression de l\'ancienne photo...');
 
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error(`Erreur lors de la suppression du fichier ${filePath} :`, err);
+      // ⚠️ VÉRIFICATION: C'est bien une URL Firebase ?
+      if (!oldPhotoUrl.startsWith('http')) {
+        console.warn('   ⚠️  Ancienne photo URL invalide, skip suppression');
+      } else {
+        try {
+          // ✅ Extraire le chemin Firebase depuis l'URL
+          const bucketName = bucket.name;
+          const urlPattern = `https://storage.googleapis.com/${bucketName}/`;
+
+          if (oldPhotoUrl.startsWith(urlPattern)) {
+            const filePath = oldPhotoUrl.replace(urlPattern, '');
+            const decodedPath = decodeURIComponent(filePath);
+
+            console.log('   Chemin Firebase:', decodedPath);
+
+            await bucket.file(decodedPath).delete();
+            console.log('   ✓ Ancienne photo Firebase supprimée');
+          } else {
+            console.warn('   ⚠️  URL ne correspond pas au bucket:', oldPhotoUrl);
+          }
+        } catch (deleteError) {
+          console.error('   ❌ Erreur suppression ancienne photo:', deleteError.message);
+          console.error('   Code:', deleteError.code);
+
+          // ⚠️ Ne pas bloquer le changement de photo
+          if (deleteError.code === 404) {
+            console.log('   ℹ️  Ancienne photo déjà supprimée ou inexistante');
+          }
         }
-      });
+      }
     }
 
     // Remove the group from the list of groups for each member user

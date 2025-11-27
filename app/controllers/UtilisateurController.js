@@ -246,17 +246,50 @@ module.exports = {
     }
   },
 
+  /**
+   * ✅ Ajouter une story (texte stylisé OU fichier avec légende)
+   *
+   * Pour texte (Content-Type: application/json):
+   * {
+   *   texte: 'Mon message',
+   *   backgroundColor: '#FF6B6B',
+   *   textColor: '#FFFFFF',
+   *   textAlign: 'center',
+   *   fontSize: 28,
+   *   fontWeight: 'w600'
+   * }
+   *
+   * Pour fichier (Content-Type: multipart/form-data):
+   * - file: [fichier]
+   * - caption: 'Ma légende' (optionnel)
+   */
   async ajouterStory(req, res) {
     try {
-      const data = await prepareStoryData(req);
-      const story = await utilisateurService.addStory(req.session.passport.user._id, data);
+      console.log('\n🎬 === AJOUT STORY ===');
+      console.log('📍 User ID:', req.session.passport.user._id);
+      console.log('📦 Body:', req.body);
+      console.log('📎 File:', req.file ? 'Présent' : 'Absent');
 
+      // Préparer les données selon le type de story
+      const data = await prepareStoryData(req);
+
+      // Appeler le service utilisateur pour créer la story
+      const story = await utilisateurService.addStory(
+        req.session.passport.user._id,
+        data
+      );
+
+      // Émettre l'événement socket
       io.emit('story_ajoutee', story);
+
+      console.log('✅ Story créée avec succès:', story.storyId || story._id);
+      console.log('======================\n');
 
       res.status(201).json(story);
     } catch (error) {
-      console.error(error);
-      res.status(error.status||500).json({ message: error.message });
+      console.error('❌ [ajouterStory] Erreur:', error.message);
+      console.error('Stack:', error.stack);
+      res.status(error.status || 500).json({ message: error.message });
     }
   },
 
@@ -348,23 +381,55 @@ async changePhoto(req, res) {
     }
   },
 
+/**
+   * Supprimer une story
+   */
   async supprimerStory(req, res) {
     try {
-      await utilisateurService.deleteStory(req.session.passport.user._id, req.params.id);
+      console.log('\n🗑️ === SUPPRESSION STORY ===');
+      console.log('📍 User ID:', req.session.passport.user._id);
+      console.log('📍 Story ID:', req.params.id);
 
+      await utilisateurService.deleteStory(
+        req.session.passport.user._id,
+        req.params.id
+      );
+
+      // Émettre l'événement socket
       io.emit('story_supprimee', req.params.id);
+
+      console.log('✅ Story supprimée avec succès');
+      console.log('============================\n');
 
       res.status(204).send();
     } catch (error) {
-      res.status(error.status||500).json({ message: error.message });
+      console.error('❌ [supprimerStory] Erreur:', error.message);
+      res.status(error.status || 500).json({ message: error.message });
     }
   },
+
+  /**
+   * Voir une story (marque comme vue)
+   */
   async voirStory(req, res) {
     try {
-     const story= await utilisateurService.voirStory(req.session.passport.user._id, req.params.id);
-     res.status(200).json(story);
+      console.log('\n👁️ === VOIR STORY ===');
+      console.log('📍 User ID:', req.session.passport.user._id);
+      console.log('📍 Story ID:', req.params.id);
+
+      const story = await utilisateurService.voirStory(
+        req.session.passport.user._id,
+        req.params.id
+      );
+
+      console.log('✅ Story récupérée');
+      console.log('   Vues:', story.vues.length);
+      console.log('======================\n');
+
+      res.status(200).json(story);
     } catch (error) {
-      res.status(error.status||500).json({ message: error.message });
+      console.error('❌ [voirStory] Erreur:', error.message);
+      res.status(error.status || 500).json({ message: error.message });
     }
   },
 

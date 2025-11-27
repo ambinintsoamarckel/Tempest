@@ -339,49 +339,125 @@ class UtilisateurService {
       }
     }
 
-  async addStory(utilisateurId,contenu)
-  {
+/**
+   * ✅ Ajouter une story avec support des styles et légendes
+   * @param {string} userId - ID de l'utilisateur
+   * @param {object} storyData - Données de la story
+   * @returns {object} Story créée
+   */
+  async addStory(userId, storyData) {
     try {
-      const utilisateur = await Utilisateur.findById(utilisateurId);
-      if (!utilisateur) {
-        const error= new Error('Utilisateur non trouvé');
+      console.log('📤 [UtilisateurService.addStory] Début');
+      console.log('   User ID:', userId);
+      console.log('   Story Data:', JSON.stringify(storyData, null, 2));
+
+      // Récupérer l'utilisateur
+      const user = await Utilisateur.findById(userId);
+      if (!user) {
+        const error = new Error('Utilisateur non trouvé');
         error.status = 404;
         throw error;
       }
-      return await utilisateur.addStory(contenu);
-    }   catch (error) {
-      console.error('Erreur lors de l\'ajout du story :', error);
+
+      // Validation des données
+      if (!storyData.contenu || !storyData.contenu.type) {
+        const error = new Error('Le type de contenu est requis');
+        error.status = 400;
+        throw error;
+      }
+
+      // Validation spécifique selon le type
+      const { type, texte, image, video, caption } = storyData.contenu;
+
+      if (type === 'texte' && (!texte || texte.trim().length === 0)) {
+        const error = new Error('Le texte est requis pour une story de type texte');
+        error.status = 400;
+        throw error;
+      }
+
+      if (type === 'image' && !image) {
+        const error = new Error('L\'image est requise pour une story de type image');
+        error.status = 400;
+        throw error;
+      }
+
+      if (type === 'video' && !video) {
+        const error = new Error('La vidéo est requise pour une story de type vidéo');
+        error.status = 400;
+        throw error;
+      }
+
+      // Utiliser la méthode du modèle Utilisateur
+      const result = await user.addStory(storyData.contenu);
+
+      console.log('✅ [UtilisateurService.addStory] Story créée');
+      console.log('   Story ID:', result.storyId);
+
+      // Retourner la story complète
+      return result;
+    } catch (error) {
+      console.error('❌ [UtilisateurService.addStory] Erreur:', error.message);
       throw error;
     }
   }
 
-  async deleteStory(utilisateurId,storyId)
-  {
+  /**
+   * Supprimer une story
+   * @param {string} userId - ID de l'utilisateur
+   * @param {string} storyId - ID de la story
+   */
+  async deleteStory(userId, storyId) {
     try {
-      const utilisateur = await Utilisateur.findById(utilisateurId);
-      if (!utilisateur) {
-        const error= new Error('Utilisateur non trouvé');
+      console.log('🗑️ [UtilisateurService.deleteStory] Début');
+      console.log('   User ID:', userId);
+      console.log('   Story ID:', storyId);
+
+      const user = await Utilisateur.findById(userId);
+      if (!user) {
+        const error = new Error('Utilisateur non trouvé');
         error.status = 404;
         throw error;
       }
-      return await utilisateur.deleteStory(storyId);
-    }   catch (error) {
-      console.error('Erreur lors de l\'ajout du story :', error);
+
+      // Utiliser la méthode du modèle Utilisateur
+      const result = await user.deleteStory(storyId);
+
+      console.log('✅ [UtilisateurService.deleteStory] Story supprimée');
+      return result;
+    } catch (error) {
+      console.error('❌ [UtilisateurService.deleteStory] Erreur:', error.message);
       throw error;
     }
   }
-  async voirStory(utilisateurId,storyId)
-  {
+
+  /**
+   * Voir une story (marque comme vue)
+   * @param {string} userId - ID de l'utilisateur qui voit
+   * @param {string} storyId - ID de la story
+   * @returns {object} Story avec vues mises à jour
+   */
+  async voirStory(userId, storyId) {
     try {
-      const utilisateur = await Utilisateur.findById(utilisateurId);
-      if (!utilisateur) {
-        const error= new Error('Utilisateur non trouvé');
+      console.log('👁️ [UtilisateurService.voirStory] Début');
+      console.log('   Viewer ID:', userId);
+      console.log('   Story ID:', storyId);
+
+      const user = await Utilisateur.findById(userId);
+      if (!user) {
+        const error = new Error('Utilisateur non trouvé');
         error.status = 404;
         throw error;
       }
-      return await utilisateur.voirStory(storyId);
-    }   catch (error) {
-      console.error('Erreur lors de lecture du story :', error);
+
+      // Utiliser la méthode du modèle Utilisateur
+      const story = await user.voirStory(storyId);
+
+      console.log('✅ [UtilisateurService.voirStory] Story vue');
+      console.log('   Total vues:', story.vues.length);
+
+      return story;
+    } catch (error) {
+      console.error('❌ [UtilisateurService.voirStory] Erreur:', error.message);
       throw error;
     }
   }

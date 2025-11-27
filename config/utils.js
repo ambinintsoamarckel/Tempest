@@ -89,37 +89,73 @@ async function prepareMessageData(req) {
   return messageData;
 }
 
+// Remplacez votre fonction prepareStoryData actuelle par celle-ci
 async function prepareStoryData(req) {
   let storyData;
 
-  if (req.file) {
-    const fileUrl = await uploadFileToFirebase(req.file, `stories/${req.file.fieldname}-${Date.now()}${path.extname(req.file.originalname)}`);
-    let fileType;
+  // Extraction des propriétés de style et de légende du corps de la requête
+  const {
+    texte,
+    backgroundColor,
+    textColor,
+    textAlign,
+    fontSize,
+    fontWeight,
+    caption // Nouveau champ
+  } = req.body;
 
+  if (req.file) {
+    // 1. CAS : Story avec Fichier (Image ou Vidéo)
+
+    const destination = `stories/${req.file.fieldname}-${Date.now()}${path.extname(req.file.originalname)}`;
+    const fileUrl = await uploadFileToFirebase(req.file, destination);
+
+    let fileType;
     if (req.file.mimetype.startsWith('image/')) {
       fileType = 'image';
     } else if (req.file.mimetype.startsWith('video/')) {
       fileType = 'video';
+    } else {
+      const error = new Error('Type de fichier non supporté pour la story.');
+      error.status = 415;
+      throw error;
     }
+
     storyData = {
       contenu: {
         type: fileType,
-        [fileType]: fileUrl
+        [fileType]: fileUrl,
+        caption: caption || null
       }
     };
-  } else if (req.body.texte) {
+
+  } else if (texte) {
+    // 2. CAS : Story avec Texte Stylisé
+
     storyData = {
       contenu: {
         type: 'texte',
-        texte: req.body.texte
+        texte: texte,
+        backgroundColor: backgroundColor || null,
+        textColor: textColor || null,
+        textAlign: textAlign || null,
+        fontSize: fontSize ? Number(fontSize) : null,
+        fontWeight: fontWeight || null,
+        caption: null
       }
     };
+
   } else {
-    throw new Error('Aucun contenu valide trouvé');
+    // 3. CAS : Contenu Manquant
+    const error = new Error('Aucun contenu valide trouvé (fichier ou texte manquant).');
+    error.status = 400;
+    throw error;
   }
 
   return storyData;
-};
+}
+
+// La fonction uploadFileToFirebase n'a pas besoin d'être modifiée.
 
 const uploadFileToFirebase = async (file, destination) => {
   console.log('  >> Upload Firebase START');

@@ -431,13 +431,67 @@ utilisateurSchema.methods.findDiscussionWithGroup = async function(groupeId) {
   }
 };
 
+/**
+ * ✅ Méthode améliorée pour ajouter une story
+ * Supporte maintenant les stories texte stylisées et les légendes d'images
+ */
 utilisateurSchema.methods.addStory = async function(contenu) {
   try {
     await this.UpdatePresence();
+
+    // Validation des données selon le type
+    if (!contenu || !contenu.type) {
+      throw new Error('Le type de contenu est requis');
+    }
+
+    // Validation pour story texte
+    if (contenu.type === 'texte') {
+      if (!contenu.texte || contenu.texte.trim().length === 0) {
+        throw new Error('Le texte est requis pour une story de type texte');
+      }
+
+      // Logs pour le debug
+      console.log('📝 Création story texte avec styles:', {
+        texte: contenu.texte,
+        backgroundColor: contenu.backgroundColor,
+        textColor: contenu.textColor,
+        textAlign: contenu.textAlign,
+        fontSize: contenu.fontSize,
+        fontWeight: contenu.fontWeight
+      });
+    }
+
+    // Validation pour story image/vidéo
+    if (contenu.type === 'image' && !contenu.image) {
+      throw new Error('L\'URL de l\'image est requise pour une story de type image');
+    }
+
+    if (contenu.type === 'video' && !contenu.video) {
+      throw new Error('L\'URL de la vidéo est requise pour une story de type vidéo');
+    }
+
+    // Log pour légende si présente
+    if (contenu.caption) {
+      console.log('💬 Story avec légende:', contenu.caption);
+    }
+
     // Créer une nouvelle instance de Story
     const nouvelleStory = new mongoose.model('Story')({
       utilisateur: this._id,
-      ...contenu,
+      contenu: {
+        type: contenu.type,
+        texte: contenu.texte || null,
+        image: contenu.image || null,
+        video: contenu.video || null,
+        // ✅ Champs de style pour texte
+        backgroundColor: contenu.backgroundColor || null,
+        textColor: contenu.textColor || null,
+        textAlign: contenu.textAlign || 'center',
+        fontSize: contenu.fontSize || null,
+        fontWeight: contenu.fontWeight || null,
+        // ✅ Légende pour image/vidéo
+        caption: contenu.caption || null
+      }
     });
 
     // Sauvegarder la nouvelle story
@@ -447,9 +501,15 @@ utilisateurSchema.methods.addStory = async function(contenu) {
     this.stories.push(nouvelleStory._id);
     await this.save();
 
-    return 'Story ajoutée avec succès.';
+    console.log('✅ Story créée avec succès:', nouvelleStory._id);
+
+    return {
+      message: 'Story ajoutée avec succès.',
+      storyId: nouvelleStory._id,
+      story: nouvelleStory
+    };
   } catch (error) {
-    console.error(`Erreur lors de l'ajout de la story pour l'utilisateur ${this._id} :`, error);
+    console.error(`❌ Erreur lors de l'ajout de la story pour l'utilisateur ${this._id}:`, error);
     throw error;
   }
 };
@@ -457,19 +517,20 @@ utilisateurSchema.methods.addStory = async function(contenu) {
 utilisateurSchema.methods.deleteStory = async function(storyId) {
   try {
     await this.UpdatePresence();
+
     // Vérifier si l'utilisateur a créé la story
-    const Story= mongoose.model('Story');
-    const story=await Story.findById(storyId);
+    const Story = mongoose.model('Story');
+    const story = await Story.findById(storyId);
+
     if (!story) {
-      const error= new Error('la story n\'existe pas.');
+      const error = new Error('La story n\'existe pas.');
       error.status = 404;
       throw error;
     }
 
-
     const index = this.stories.indexOf(storyId);
     if (index === -1) {
-      const error= new Error('L\'utilisateur n\'a pas créé cette story.');
+      const error = new Error('L\'utilisateur n\'a pas créé cette story.');
       error.status = 403;
       throw error;
     }
@@ -480,15 +541,14 @@ utilisateurSchema.methods.deleteStory = async function(storyId) {
     this.stories.splice(index, 1);
     await this.save();
 
-
+    console.log('✅ Story supprimée avec succès:', storyId);
 
     return 'Story supprimée avec succès.';
   } catch (error) {
-    console.error(`Erreur lors de la suppression de la story pour l'utilisateur ${this._id} :`, error);
+    console.error(`❌ Erreur lors de la suppression de la story pour l'utilisateur ${this._id}:`, error);
     throw error;
   }
 };
-
 
 utilisateurSchema.methods.findLastConversations = async function() {
   try {
@@ -985,25 +1045,34 @@ utilisateurSchema.methods.changePhotoGroup = async function(groupeId, newPhotoUr
     throw error;
   }
 };
-utilisateurSchema.methods.voirStory =async function(storyId) {
+utilisateurSchema.methods.voirStory = async function(storyId) {
   try {
     await this.UpdatePresence();
+
     const Story = mongoose.model('Story');
     const story = await Story.findOne({ _id: storyId, active: true }).populate('utilisateur');
+
     if (!story) {
-      const error= new Error('story non trouvé');
+      const error = new Error('Story non trouvée');
       error.status = 404;
       throw error;
     }
 
     const dejavu = story.vues.some(entry => entry.equals(this._id));
-    if (!dejavu&&!story.utilisateur._id.equals(this._id)) {
-            story.vues.push(this._id );
-            await story.save();
 
-            const io = getIo();
-            io.emit('story_vue', story.utilisateur._id);
-          }
+    if (!dejavu && !story.utilisateur._id.equals(this._id)) {
+      story.vues.push(this._id);
+      await story.save();
+
+      const io = getIo();
+      io.emit('story_vue', story.utilisateur._id);
+
+      console.log('👁️ Nouvelle vue sur story:', {
+        storyId: story._id,
+        viewer: this._id
+      });
+    }
+
     await story.populate('vues');
     return story;
   } catch (error) {
