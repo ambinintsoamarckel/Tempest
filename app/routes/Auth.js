@@ -15,13 +15,13 @@ passport.use(new LocalStrategy(
       const user = await Utilisateur.findOne({ email: username });
       
       if (!user) {
-        return cb(null, false, { message: 'Incorrect email.' });
+        return cb(null, false, { message: 'E-mail incorrect.' });
       }
       
       crypto.pbkdf2(password, user.salt, 310000, 32, 'sha256', function(err, hashedPassword) {
         if (err) { return cb(err); }
         if (!crypto.timingSafeEqual(Buffer.from(user.password, 'hex'), hashedPassword)) {
-          return cb(null, false, { message: 'Incorrect password.' });
+          return cb(null, false, { message: 'Mot de passe incorrect.' });
         }
         return cb(null, user);
       });
@@ -78,10 +78,10 @@ router.post('/logout', async (req, res) => {
   user= await mongoose.model('Utilisateur').findById(req.user._id);
   //await user.setInactif().catch(error => res.status(500).json({ message: 'Presence update failed'+error }));
   req.logout((err) => {
-    if (err) { return res.status(500).json({ message: 'Logout failed' }); }
+    if (err) { return res.status(500).json({ message: 'La déconnexion a échoué' }); }
 
     // Mettre à jour la présence à "inactif" avant le logout
-    res.status(200).json({ message: 'Logged out' });
+    res.status(200).json({ message: 'Déconnecté' });
   
 
   });

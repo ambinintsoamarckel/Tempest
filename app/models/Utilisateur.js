@@ -920,7 +920,7 @@ utilisateurSchema.methods.deleteMessage = async function(messageId) {
 
     return 'Message supprimé avec succès.';
   } catch (error) {
-    console.error('    ❌ Erreur dans deleteMessage METHOD');
+    console.error('    ❌ Erreur dans la méthode de suppression de message');
     console.error('        Message:', error.message);
     console.error('        Stack:', error.stack);
     console.error('    >>> deleteMessage METHOD END (ERROR)');

@@ -8,13 +8,13 @@ function verify(username, password, cb) {
     try {
       const user = Utilisateur.findOne({ email: username });
       if (!user) {
-        return cb(null, false, { message: 'Incorrect email.' });
+        return cb(null, false, { message: 'E-mail incorect.' });
       }
 
       crypto.pbkdf2(password, user.salt, 310000, 32, 'sha256', function(err, hashedPassword) {
         if (err) { return done(err); }
         if (!crypto.timingSafeEqual(Buffer.from(user.hashed_password, 'hex'), hashedPassword)) {
-          return cb(null, false, { message: 'Incorrect password.' });
+          return cb(null, false, { message: 'Mot de passe incorrect.' });
         }
         return cb(null, user);
       });
