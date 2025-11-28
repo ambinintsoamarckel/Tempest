@@ -88,45 +88,43 @@ module.exports = {
     }
   },
 
-  async modifierMonCompte(req, res) {
-    try {
-      const result = await utilisateurService.updateUtilisateur(
-        req.session.passport.user._id,
-        req.body
-      );
+async modifierMonCompte(req, res) {
+  try {
+    const result = await utilisateurService.updateUtilisateur(
+      req.session.passport.user._id,
+      req.body
+    );
 
-      req.logout(async (err) => {
+    req.logout(async (err) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Erreur lors de la déconnexion après le changement de l\'utilisateur.'
+        });
+      }
+
+      // Reconnecter l'utilisateur avec les nouvelles données
+      req.login(result, (err) => {
         if (err) {
-          return res.status(500).json({ message: 'Erreur lors de la déconnexion' });
+          return res.status(500).json({
+            message: 'Erreur lors de la reconnexion après le changement de l\'utilisateur.'
+          });
         }
 
-        req.login(result, (err) => {
-          if (err) {
-            return res.status(500).json({ message: 'Erreur lors de la reconnexion' });
-          }
+        // Notifier les autres clients
+        const io = getIo();
+        io.emit('utilisateur_modifie', result);
 
-          io.emit('utilisateur_modifie', result);
-
-          // ✅ Utilise res.cookie() pour envoyer dans les headers ET le body
-          const cookie = generateCookie(req.sessionID);
-
-          return res.status(200)
-            .cookie('connect.sid', req.sessionID, {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: 'lax'
-            })
-            .json({
-              message: 'Utilisateur changé avec succès',
-              user: result,
-              'Set-Cookie': cookie // Pour compatibilité web
-            });
+        // ✅ req.login() régénère automatiquement le cookie de session
+        return res.status(200).json({
+          message: 'Utilisateur changé avec succès',
+          user: result
         });
       });
-    } catch (error) {
-      res.status(error.status || 500).json({ message: error.message });
-    }
-  },
+    });
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message });
+  }
+},
 
   async supprimerUtilisateur(req, res) {
     try {
