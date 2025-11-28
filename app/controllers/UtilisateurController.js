@@ -88,43 +88,43 @@ module.exports = {
     }
   },
 
-async modifierMonCompte(req, res) {
-  try {
-    const result = await utilisateurService.updateUtilisateur(
-      req.session.passport.user._id,
-      req.body
-    );
+  async modifierMonCompte(req, res) {
+    try {
+      const result = await utilisateurService.updateUtilisateur(
+        req.session.passport.user._id,
+        req.body
+      );
 
-    req.logout(async (err) => {
-      if (err) {
-        return res.status(500).json({
-          message: 'Erreur lors de la déconnexion après le changement de l\'utilisateur.'
-        });
-      }
+      // ✅ Mettre à jour directement la session (pas de nouveau cookie)
+      req.session.passport.user = {
+        _id: result._id,
+        email: result.email,
+        nom: result.nom,
+        photo: result.photo,
+        presence: result.presence
+      };
 
-      // Reconnecter l'utilisateur avec les nouvelles données
-      req.login(result, (err) => {
+      // Sauvegarder la session modifiée
+      req.session.save((err) => {
         if (err) {
           return res.status(500).json({
-            message: 'Erreur lors de la reconnexion après le changement de l\'utilisateur.'
+            message: 'Erreur lors de la sauvegarde de la session'
           });
         }
 
-        // Notifier les autres clients
+        // ✅ Émettre le socket APRÈS que la session soit sauvegardée
         const io = getIo();
         io.emit('utilisateur_modifie', result);
 
-        // ✅ req.login() régénère automatiquement le cookie de session
         return res.status(200).json({
-          message: 'Utilisateur changé avec succès',
-          user: result
+          message: 'Utilisateur modifié avec succès',
+          user: req.session.passport.user
         });
       });
-    });
-  } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
-  }
-},
+    } catch (error) {
+      res.status(error.status || 500).json({ message: error.message });
+    }
+  },
 
   async supprimerUtilisateur(req, res) {
     try {
