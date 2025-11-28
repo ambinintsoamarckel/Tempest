@@ -90,26 +90,41 @@ module.exports = {
 
   async modifierMonCompte(req, res) {
     try {
-      const result = await utilisateurService.updateUtilisateur(req.session.passport.user._id, req.body);
+      const result = await utilisateurService.updateUtilisateur(
+        req.session.passport.user._id,
+        req.body
+      );
+
       req.logout(async (err) => {
         if (err) {
-            return res.status(500).json({ message: 'Erreur lors de la déconnexion après le changement de mot de l\'utilisateur.' });
+          return res.status(500).json({ message: 'Erreur lors de la déconnexion' });
         }
 
-        // Reconnecter l'utilisateur
         req.login(result, (err) => {
-            if (err) {
-                return res.status(500).json({ message: 'Erreur lors de la reconnexion après le changement de l\'utilisateur.' });
-            }
+          if (err) {
+            return res.status(500).json({ message: 'Erreur lors de la reconnexion' });
+          }
 
-            io.emit('utilisateur_modifie', result);
+          io.emit('utilisateur_modifie', result);
 
-            return res.status(200).json({ message: 'Utilisateur changé avec succès', user: result,'Set-Cookie': generateCookie(req.sessionID) });
+          // ✅ Utilise res.cookie() pour envoyer dans les headers ET le body
+          const cookie = generateCookie(req.sessionID);
 
+          return res.status(200)
+            .cookie('connect.sid', req.sessionID, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax'
+            })
+            .json({
+              message: 'Utilisateur changé avec succès',
+              user: result,
+              'Set-Cookie': cookie // Pour compatibilité web
+            });
         });
-    });
+      });
     } catch (error) {
-      res.status(error.status||500).json({ message: error.message });
+      res.status(error.status || 500).json({ message: error.message });
     }
   },
 
