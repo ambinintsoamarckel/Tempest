@@ -71,7 +71,7 @@ module.exports = {
     try {
       res.status(200).json(req.session.passport.user);
     } catch (error) {
-      res.status(404).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
   },
 

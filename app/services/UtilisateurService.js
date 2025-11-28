@@ -186,7 +186,7 @@ class UtilisateurService {
       const utilisateur = await Utilisateur.findByIdAndUpdate(utilisateurId, data, { new: true });
       if (!utilisateur) {
         const error= new Error('Utilisateur non trouvé');
-        error.status = 404;
+        error.status = 401;
         throw error;
       }
       const user={
@@ -236,7 +236,7 @@ class UtilisateurService {
       const utilisateur = await Utilisateur.findById(utilisateurId).populate('groupes');
       if (!utilisateur) {
         const error= new Error('Utilisateur non trouvé');
-        error.status = 404;
+        error.status = 401;
         throw error;
       }
       return await utilisateur.findLastConversations();
@@ -252,7 +252,7 @@ class UtilisateurService {
       const utilisateur = await Utilisateur.findById(utilisateurId);
       if (!utilisateur) {
         const error= new Error('Utilisateur non trouvé');
-        error.status = 404;
+        error.status = 401;
         throw error;
       }
       return await utilisateur.findDiscussionWithPerson(contactId);
@@ -266,7 +266,7 @@ class UtilisateurService {
       const utilisateur = await Utilisateur.findById(utilisateurId);
       if (!utilisateur) {
         const error= new Error('Utilisateur non trouvé');
-        error.status = 404;
+        error.status = 401;
         throw error;
       }
       return await utilisateur.findDiscussionWithGroup(groupId);
@@ -282,7 +282,7 @@ class UtilisateurService {
       const utilisateur = await Utilisateur.findById(expediteurId);
       if (!utilisateur) {
         const error= new Error('Utilisateur non trouvé');
-        error.status = 404;
+        error.status = 401;
         throw error;
       }
       return await utilisateur.sendMessageToPerson(destinataireId,contenu);
@@ -298,7 +298,7 @@ class UtilisateurService {
       const utilisateur = await Utilisateur.findById(expediteurId);
       if (!utilisateur) {
         const error= new Error('Utilisateur non trouvé');
-        error.status = 404;
+        error.status = 401;
         throw error;
       }
       return await utilisateur.sendMessageToGroup(groupeId,contenu);
@@ -313,7 +313,7 @@ class UtilisateurService {
         const utilisateur = await Utilisateur.findById(expediteurId);
         if (!utilisateur) {
           const error= new Error('Utilisateur non trouvé');
-          error.status = 404;
+          error.status = 401;
           throw error;
         }
         return await utilisateur.transferToPerson(destinataireId,messageId);
@@ -329,7 +329,7 @@ class UtilisateurService {
         const utilisateur = await Utilisateur.findById(expediteurId);
         if (!utilisateur) {
           const error= new Error('Utilisateur non trouvé');
-          error.status = 404;
+          error.status = 401;
           throw error;
         }
         return await utilisateur.transferToGroup(groupeId,messageId);
@@ -355,7 +355,7 @@ class UtilisateurService {
       const user = await Utilisateur.findById(userId);
       if (!user) {
         const error = new Error('Utilisateur non trouvé');
-        error.status = 404;
+        error.status = 401;
         throw error;
       }
 
@@ -415,7 +415,7 @@ class UtilisateurService {
       const user = await Utilisateur.findById(userId);
       if (!user) {
         const error = new Error('Utilisateur non trouvé');
-        error.status = 404;
+        error.status = 401;
         throw error;
       }
 
@@ -445,7 +445,7 @@ class UtilisateurService {
       const user = await Utilisateur.findById(userId);
       if (!user) {
         const error = new Error('Utilisateur non trouvé');
-        error.status = 404;
+        error.status = 401;
         throw error;
       }
 

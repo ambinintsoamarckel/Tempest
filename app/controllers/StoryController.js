@@ -91,7 +91,7 @@ module.exports = {
 
       res.status(200).json(story);
     } catch (error) {
-      res.status(404).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
   },
 
@@ -104,7 +104,7 @@ module.exports = {
       res.status(200).json(stories);
     } catch (error) {
       console.error('❌ Erreur récupération stories:', error);
-      res.status(404).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
   },
 
@@ -113,7 +113,7 @@ module.exports = {
       const story = await storyService.getActiveStoriesByUser(req.params.userid);
 
       if (!story) {
-        return res.status(404).json({ message: 'Aucune story active pour cet utilisateur' });
+        return res.status(500).json({ message: 'Aucune story active pour cet utilisateur' });
       }
 
       io.emit('story_recuperee', story);
@@ -121,7 +121,7 @@ module.exports = {
       res.status(200).json(story);
     } catch (error) {
       console.error('❌ Erreur récupération story utilisateur:', error);
-      res.status(404).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
   },
 
@@ -136,7 +136,7 @@ module.exports = {
       res.status(200).json(story);
     } catch (error) {
       console.error('❌ Erreur récupération archive:', error);
-      res.status(404).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
   },
 

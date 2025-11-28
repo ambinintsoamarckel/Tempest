@@ -1247,7 +1247,7 @@ utilisateurSchema.methods.updateGroup = async function(groupeId, updateData) {
     // Vérifier si l'utilisateur est membre du groupe
     if (!groupe.membres.includes(this._id)) {
       const error= new Error('Vous devez être membre du groupe pour changer la photo.');
-      error.status = 403;
+      error.status = 401;
       throw error;
     }
 
